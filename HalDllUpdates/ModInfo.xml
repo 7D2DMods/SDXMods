@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xml>
+	<ModInfo>
+		<Name value="Hal's DLL Fixes" />
+		<Description value="Changes the base DLL to be more modding friendly" />
+		<Author value="HAL9000" />
+		<Version value="1" />
+		<Website value="http://sdxmods.com" />
+	</ModInfo>
+</xml>
