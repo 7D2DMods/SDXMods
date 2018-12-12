@@ -151,7 +151,7 @@ public class EntityZombieFlockSDX : EntityZombieSDX
             blRunInDark = true;
 
         GetWalkType();
-        GetApproachSpeed();
+      //  GetApproachSpeed();
 
         // Sets the hand value, so we can give our entities ranged weapons.
         this.inventory.SetSlots(new ItemStack[]
@@ -215,60 +215,60 @@ public class EntityZombieFlockSDX : EntityZombieSDX
 
 
     // Update the Approach speed, and add a randomized speed to it
-    public override float GetApproachSpeed()
-    {
-        // default approach speed of this new class is 0, so if we are already above that, just re-use the value.
-        if (flApproachSpeed > 0.0f)
-            return flApproachSpeed;
+    //public override float GetApproachSpeed()
+    //{
+    //    // default approach speed of this new class is 0, so if we are already above that, just re-use the value.
+    //    if (flApproachSpeed > 0.0f)
+    //        return flApproachSpeed;
 
-        // Find the default approach speed from the base class to give us a reference.
-        float fDefaultSpeed = base.GetApproachSpeed();
+    //    // Find the default approach speed from the base class to give us a reference.
+    //    float fDefaultSpeed = base.GetApproachSpeed();
 
-        // If random run is disables, return the base speed
-        if (!blRandomSpeeds)
-            return fDefaultSpeed;
+    //    // If random run is disables, return the base speed
+    //    if (!blRandomSpeeds)
+    //        return fDefaultSpeed;
 
-        // if it's greater than 1, just use the base value in the XML. 
-        // This would otherwise make the football and wights run even faster than they do now.
-        if (fDefaultSpeed > 1.0f)
-            return fDefaultSpeed;
+    //    // if it's greater than 1, just use the base value in the XML. 
+    //    // This would otherwise make the football and wights run even faster than they do now.
+    //    if (fDefaultSpeed > 1.0f)
+    //        return fDefaultSpeed;
 
-        // new way to generate the multiplier to control their speeds
-        float[] numbers = new float[9] {-0.2f, -0.2f, -0.1f, -0.1f, 0.0f, 0.0f, 0.0f, 0.1f, 0.1f };
-        int randomIndex = random.Next(0, numbers.Length);
+    //    // new way to generate the multiplier to control their speeds
+    //    float[] numbers = new float[9] {-0.2f, -0.2f, -0.1f, -0.1f, 0.0f, 0.0f, 0.0f, 0.1f, 0.1f };
+    //    int randomIndex = random.Next(0, numbers.Length);
 
-        float fRandomMultiplier = numbers[randomIndex];
+    //    float fRandomMultiplier = numbers[randomIndex];
 
-        // If the zombies are set never to run, still apply the multiplier, but don't bother doing calulations based on the night speed.
-        if (GamePrefs.GetInt(EnumGamePrefs.ZombiesRun) == 1)
-        {
-            flApproachSpeed = this.speedApproach + fRandomMultiplier;
-        }
-        else
-        {
-            // Rnadomize the zombie speeds types If you have the blRunInDark set to true, then it'll randomize it too.
-            if (blRunInDark && this.world.IsDark() || lightLevel < LightThreshold || this.Health < this.GetMaxHealth() * 0.4)
-            {
-                flApproachSpeed = this.speedApproachNight + fRandomMultiplier;
-            }
-            else if (this.world.IsDark())
-            {
-                flApproachSpeed = this.speedApproachNight + fRandomMultiplier;
-            }
-            else
-            {
-                flApproachSpeed = this.speedApproach + fRandomMultiplier;
-            }
-        }
+    //    // If the zombies are set never to run, still apply the multiplier, but don't bother doing calulations based on the night speed.
+    //    if (GamePrefs.GetInt(EnumGamePrefs.ZombiesRun) == 1)
+    //    {
+    //        flApproachSpeed = this.speedApproach + fRandomMultiplier;
+    //    }
+    //    else
+    //    {
+    //        // Rnadomize the zombie speeds types If you have the blRunInDark set to true, then it'll randomize it too.
+    //        if (blRunInDark && this.world.IsDark() || lightLevel < LightThreshold || this.Health < this.GetMaxHealth() * 0.4)
+    //        {
+    //            flApproachSpeed = this.speedApproachNight + fRandomMultiplier;
+    //        }
+    //        else if (this.world.IsDark())
+    //        {
+    //            flApproachSpeed = this.speedApproachNight + fRandomMultiplier;
+    //        }
+    //        else
+    //        {
+    //            flApproachSpeed = this.speedApproach + fRandomMultiplier;
+    //        }
+    //    }
 
-        // If the approach speed is too low, set it to default speed
-        if (flApproachSpeed <= 0)
-            flApproachSpeed = base.GetApproachSpeed();
+    //    // If the approach speed is too low, set it to default speed
+    //    if (flApproachSpeed <= 0)
+    //        flApproachSpeed = base.GetApproachSpeed();
 
-        // Cap the top end of the speed to be 1.35 or less, otherwise animations may go wonky.
-        return Math.Min(flApproachSpeed, 1.1f);
+    //    // Cap the top end of the speed to be 1.35 or less, otherwise animations may go wonky.
+    //    return Math.Min(flApproachSpeed, 1.1f);
 
-    }
+    //}
 
     // Randomize the Walk types.
     public int GetWalkType()

@@ -57,6 +57,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using SDX.Payload;
 using UnityEngine;
+
 using Random = UnityEngine.Random;
 
 internal class MecanimSDX : AvatarController
@@ -1068,8 +1069,8 @@ internal class MecanimSDX : AvatarController
                     var num4 = num * num + num3 * num3;
                     if (!entityAlive.IsDead())
                         anim.SetInteger(MovementState,
-                            num4 <= entityAlive.speedApproach * entityAlive.speedApproach
-                                ? (num4 <= entityAlive.speedWander * entityAlive.speedWander
+                            num4 <= entityAlive.GetMoveSpeedAggro() * entityAlive.GetMoveSpeedAggro()
+                                ? (num4 <= entityAlive.GetMoveSpeed() * entityAlive.GetMoveSpeed()
                                     ? (num4 <= 0.001f ? 0 : 1)
                                     : 2)
                                 : 3);
