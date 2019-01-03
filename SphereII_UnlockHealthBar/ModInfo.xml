@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xml>
+	<ModInfo>
+		<Name value="SphereII Unlock Health Bar" />
+		<Description value="An SDX mod that removes the God-mode check for the Zombie Health Bar" />
+		<Author value="sphereii" />
+		<Version value="1" />
+		<Website value="http://sdxmods.com" />
+	</ModInfo>
+</xml>

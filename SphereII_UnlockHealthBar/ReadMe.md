@@ -1,0 +1,1 @@
+SDX Script that removes the God-mode protection against displaying the enemy Health Bar
