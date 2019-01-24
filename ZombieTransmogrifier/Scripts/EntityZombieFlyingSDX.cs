@@ -944,10 +944,7 @@ internal class EntityZombieFlyingSDX : EntityFlying
         }
     }
 
-    protected override void falling(float _v, Vector3 _fallMotion)
-    {
-    }
-
+    
     protected override bool isDetailedHeadBodyColliders()
     {
         return true;
