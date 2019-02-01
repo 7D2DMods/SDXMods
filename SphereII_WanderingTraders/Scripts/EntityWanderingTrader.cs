@@ -51,13 +51,7 @@ class EntityWanderingTrader : EntityNPC
             for (int i = 0; i < entitiesInBounds.Count; i++)
             {
                 if (entitiesInBounds[i] is EntityPlayer)
-                {
-                    EntityPlayer entityPlayer = entitiesInBounds[i] as EntityPlayer;
-                    if (base.CanSee(entityPlayer))
-                    {
-                        this.emodel.avatarController.SetBool("IsBusy", true);
-                    }
-                }
+                    this.emodel.avatarController.SetBool("IsBusy", true);
             }
 
         }
