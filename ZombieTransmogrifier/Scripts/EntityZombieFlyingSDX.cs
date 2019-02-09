@@ -98,7 +98,7 @@ internal class EntityZombieFlyingSDX : EntityFlying
     public override void Init(int _entityClass)
     {
         base.Init(_entityClass);
-        this.emodel.SetVisible(true);
+        this.emodel.SetVisible(true, true);
         base.getNavigator().setCanDrown(true);
         base.getNavigator().setInWater(false);
 
@@ -177,7 +177,7 @@ internal class EntityZombieFlyingSDX : EntityFlying
     public override void InitFromPrefab(int _entityClass)
     {
         base.InitFromPrefab(_entityClass);
-        this.emodel.SetVisible(true);
+        this.emodel.SetVisible(true, true);
         base.getNavigator().setCanDrown(true);
         base.getNavigator().setInWater(false);
     }

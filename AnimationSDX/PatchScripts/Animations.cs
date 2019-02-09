@@ -15,11 +15,12 @@ public class AnimationChange : IPatcherMod
     {
         Console.WriteLine("== Animation Patcher===");
         var gm = module.Types.First(d => d.Name == "LegacyAvatarController");
-        var field = gm.Fields.First(d => d.Name == "animSyncWaitTime");
-        SetFieldToPublic(field);
+      //  var field = gm.Fields.First(d => d.Name == "animSyncWaitTime");
+        //SetFieldToPublic(field);
 
-        field = gm.Fields.First(d => d.Name == "hitDuration");
+        var field = gm.Fields.First(d => d.Name == "hitDuration");
         SetFieldToPublic(field);
+        //SetFieldToPublic(field);
         return true;
     }
 
