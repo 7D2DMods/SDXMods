@@ -2,7 +2,7 @@
 using UnityEngine;
 public class MinEventActionSkillPointSDX : MinEventActionRemoveBuff
 {
-    int mySkillPoint = 0;
+    int SkillPoint = 0;
     //  <triggered_effect trigger="onSelfBuffStart" action="SkillPointSDX, Mods" target="self" value="2" /> // two Skill points
     public override void Execute(MinEventParams _params)
     {
@@ -10,7 +10,7 @@ public class MinEventActionSkillPointSDX : MinEventActionRemoveBuff
         {
             EntityPlayer entity = this.targets[i] as EntityPlayer;
             if (entity != null)
-                entity.Progression.SkillPoints += mySkillPoint;
+                entity.Progression.SkillPoints += this.SkillPoint;
         }
     }
 
@@ -24,7 +24,7 @@ public class MinEventActionSkillPointSDX : MinEventActionRemoveBuff
             {
                 if (name == "value" )
                 {
-                    int.TryParse(_attribute.Value, out mySkillPoint);
+                    int.TryParse(_attribute.Value, out this.SkillPoint);
                     return true;
                 }
             }

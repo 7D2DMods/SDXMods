@@ -40,7 +40,7 @@ Example Usage:
 MinEventActionModifySkillSDX
 ------------
 
-This class allows you to add a skill point to a perk or skill
+This class allows you to add (or subtract) points to a perk or skill
 
 Example Usage:
 
@@ -62,7 +62,7 @@ Example Usage:
 MinEventActionSkillPointSDX
 ------------
 
-This class allows you to add a new Skill Point to an entity via a buff
+This class allows you to add Skill Points to an entity via a buff
 
 Example Usage:
 
