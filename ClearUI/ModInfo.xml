@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<xml>
+	<ModInfo>
+		<Name value="Clear UI" />
+		<Description value="Completely removes all UI indicators on the in-game screen for a complete immersive experience" />
+		<Author value="sphereii" />
+		<Version value="1.0" />
+	</ModInfo>
+</xml>

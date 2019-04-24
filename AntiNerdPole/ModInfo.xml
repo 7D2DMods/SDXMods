@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<xml>
+	<ModInfo>
+		<Name value="Anti Nerd Pole" />
+		<Description value="Disables placing blocks when in the air." />
+		<Author value="sphereii" />
+		<Version value="2.1" />
+	</ModInfo>
+</xml>
