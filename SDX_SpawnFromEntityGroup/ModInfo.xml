@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<xml>
+	<ModInfo>
+		<Name value="SDX_SpawnFromEntityGroup" />
+		<Description value="Allows you to spawn various entity from a single spawn." />
+		<Author value="sphereii" />
+		<Version value="1.0" />
+	</ModInfo>
+</xml>
