@@ -20,6 +20,8 @@ public class EntityAliveSDX : EntityNPC
 {
     public QuestJournal QuestJournal = new QuestJournal();
     public List<String> lstQuests = new List<String>();
+    List<String> lstHungryBuffs = new List<String>();
+    List<String> lstThirstyBuffs = new List<String>();
 
     public Orders currentOrder = Orders.Wander;
     public List<Vector3> PatrolCoordinates = new List<Vector3>();
@@ -55,11 +57,19 @@ public class EntityAliveSDX : EntityNPC
         base.Awake();
         Debug.Log("Awake()");
         this.moveHelper = new EntityMoveHelperSDX(this);
-
-
         Debug.Log(" Move Helper Type: " + this.moveHelper.GetType());
     }
 
+    // Used for maslow
+    public virtual bool CheckIncentive(List<String> Incentives)
+    {
+        foreach (String strIncentive in Incentives)
+        {
+            if (this.Buffs.HasBuff(strIncentive))
+                return true;
+        }
+        return false;
+    }
     public virtual bool CheckIncentive(List<String> lstIncentives, EntityAlive entity)
     {
         bool result = false;
@@ -99,6 +109,15 @@ public class EntityAliveSDX : EntityNPC
         return result;
     }
 
+    public String GetStringValue(String strProperty)
+    {
+        string result = String.Empty;
+        EntityClass entityClass = EntityClass.list[this.entityClass];
+        if (entityClass.Properties.Values.ContainsKey(strProperty))
+            return entityClass.Properties.Values[strProperty];
+        return result;
+    }
+
     public bool CanExecuteTask(Orders order)
     {
         // If we don't match our current order, don't execute
@@ -106,8 +125,10 @@ public class EntityAliveSDX : EntityNPC
         {
             if (this.Buffs.GetCustomVar("CurrentOrder") != (float)order)
                 return false;
-
         }
+
+        if (CheckIncentive(this.lstThirstyBuffs) || CheckIncentive(this.lstHungryBuffs))
+            return false;
 
         // If we have an attack or revenge target, don't execute task
         if (this.GetAttackTarget() != null && this.GetAttackTarget().IsAlive())
@@ -158,6 +179,7 @@ public class EntityAliveSDX : EntityNPC
         }
         if (entityClass.Properties.Values.ContainsKey("HireCost"))
             HireCost = int.Parse(entityClass.Properties.Values["HireCost"]);
+
         if (entityClass.Properties.Values.ContainsKey("HireCurrency"))
         {
             this.HireCurrency = ItemClass.GetItem(entityClass.Properties.Values["HireCurrency"], false);
@@ -165,39 +187,62 @@ public class EntityAliveSDX : EntityNPC
                 this.HireCurrency = ItemClass.GetItem("casinoCoin", false);
         }
 
+        this.lstHungryBuffs = ConfigureEntityClass("HungryBuffs", entityClass);
+        this.lstThirstyBuffs = ConfigureEntityClass("ThirstyBuffs", entityClass);
 
-        // This code works, in that we can extend the boundary box and entitys won't go into blocks, but it'll eventually float above and climb on other entities.
+        if (entityClass.Properties.Classes.ContainsKey("Boundary"))
+        {
+            DisplayLog(" Found Bandary Settings");
+            String strBoundaryBox = "0,0,0";
+            String strCenter = "0,0,0";
+            DynamicProperties dynamicProperties3 = entityClass.Properties.Classes["Boundary"];
+            foreach (KeyValuePair<string, object> keyValuePair in dynamicProperties3.Values.Dict.Dict)
+            {
+                DisplayLog("Key: " + keyValuePair.Key);
+                if (keyValuePair.Key == "BoundaryBox")
+                {
+                    DisplayLog(" Found a Boundary Box");
+                    strBoundaryBox = dynamicProperties3.Values[keyValuePair.Key];
+                    continue;
+                }
 
-        //if (entityClass.Properties.Classes.ContainsKey("Boundary"))
-        //{
-        //    DisplayLog(" Found Bandary Settings");
-        //    String strBoundaryBox = "0,0,0";
-        //    String strCenter = "0,0,0";
-        //    DynamicProperties dynamicProperties3 = entityClass.Properties.Classes["Boundary"];
-        //    foreach (KeyValuePair<string, object> keyValuePair in dynamicProperties3.Values.Dict.Dict)
-        //    {
-        //        DisplayLog("Key: " + keyValuePair.Key);
-        //        if (keyValuePair.Key == "BoundaryBox")
-        //        {
-        //            DisplayLog(" Found a Boundary Box");
-        //            strBoundaryBox = dynamicProperties3.Values[keyValuePair.Key];
-        //            continue;
-        //        }
+                if (keyValuePair.Key == "Center")
+                {
+                    DisplayLog(" Found a Center");
+                    strCenter = dynamicProperties3.Values[keyValuePair.Key];
+                    continue;
+                }
+            }
 
-        //        if (keyValuePair.Key == "Center")
-        //        {
-        //            DisplayLog(" Found a Center");
-        //            strCenter = dynamicProperties3.Values[keyValuePair.Key];
-        //            continue;
-        //        }
-        //    }
-
-        //    Vector3 Box = StringParsers.ParseVector3(strBoundaryBox, 0, -1);
-        //    Vector3 Center = StringParsers.ParseVector3(strCenter, 0, -1);
-        //    ConfigureBounaryBox(Box, Center);
-        //}
+            Vector3 Box = StringParsers.ParseVector3(strBoundaryBox, 0, -1);
+            Vector3 Center = StringParsers.ParseVector3(strCenter, 0, -1);
+            ConfigureBounaryBox(Box, Center);
+        }
     }
 
+    // helper Method to read the entity class and return a list of values based on the key
+    // Example: <property name="WaterBins" value="water,waterMoving,waterStaticBucket,waterMovingBucket,terrWaterPOI" />
+    public List<String> ConfigureEntityClass(String strKey, EntityClass entityClass)
+    {
+        List<String> TempList = new List<String>();
+        if (entityClass.Properties.Values.ContainsKey(strKey))
+        {
+            string strTemp = entityClass.Properties.Values[strKey].ToString();
+            string[] array = strTemp.Split(new char[]
+            {
+                ','
+            });
+            for (int i = 0; i < array.Length; i++)
+            {
+                if (TempList.Contains(array[i].ToString()))
+                    continue;
+                TempList.Add(array[i].ToString());
+            }
+
+        }
+        return TempList;
+
+    }
     public void ConfigureBounaryBox(Vector3 newSize, Vector3 center)
     {
         BoxCollider component = base.gameObject.GetComponent<BoxCollider>();
@@ -211,15 +256,12 @@ public class EntityAliveSDX : EntityNPC
             this.scaledExtent = new Vector3(component.size.x / 2f * base.transform.localScale.x, component.size.y / 2f * base.transform.localScale.y, component.size.z / 2f * base.transform.localScale.z);
             Vector3 vector = new Vector3(component.center.x * base.transform.localScale.x, component.center.y * base.transform.localScale.y, component.center.z * base.transform.localScale.z);
             this.boundingBox = global::BoundsUtils.BoundsForMinMax(-this.scaledExtent.x, -this.scaledExtent.y, -this.scaledExtent.z, this.scaledExtent.x, this.scaledExtent.y, this.scaledExtent.z);
+
             this.boundingBox.center = this.boundingBox.center + vector;
 
-            // component.center = new Vector3(newSize.x, newSize.y / 2, newSize.z);
-            this.nativeCollider = component;
-            //this.scaledExtent = component.size;
-            //this.boundingBox = BoundsUtils.BoundsForMinMax(newSize.x, newSize.y, newSize.z, newSize.x, newSize.x, newSize.z );
-            if (this.isDetailedHeadBodyColliders())
-                component.enabled = false;
-
+            ////  this.nativeCollider = component;
+            //if (this.isDetailedHeadBodyColliders())
+            //    component.enabled = false;
 
             if (center != Vector3.zero)
                 this.boundingBox.center = center;
@@ -599,8 +641,8 @@ public class EntityAliveSDX : EntityNPC
                 this.PatrolCoordinates.Add(temp);
         }
 
-        if (this.PatrolCoordinates.Count > 0)
-            this.Buffs.AddCustomVar("CurrentOrder", (float)Orders.Patrol);
+        //if (this.PatrolCoordinates.Count > 0)
+        //    this.Buffs.AddCustomVar("CurrentOrder", (float)Orders.Patrol);
 
         String strGuardPosition = _br.ReadString();
         this.GuardPosition = StringToVector3(strGuardPosition);
@@ -663,6 +705,21 @@ public class EntityAliveSDX : EntityNPC
         string strOutput = this.strMyName + " The " + this.entityName + " - ID: " + this.entityId + " Health: " + this.Stats.Health.Value;
         strOutput += " Stamina: " + this.Stats.Stamina.Value + " Thirst: " + this.Stats.Water.Value + " Food: " + FoodAmount + " Water: " + WaterAmount;
         strOutput += " Sanitation: " + strSanitation;
+
+        // Read the Food items configured.
+        String strFoodItems = this.GetStringValue("FoodItems");
+        if (strFoodItems == String.Empty)
+            strFoodItems = "All Food Items";
+        strOutput += "\n Food Items: " + strFoodItems;
+
+        // Read the Water Items
+        String strWaterItems = this.GetStringValue("WaterItems");
+        if (strWaterItems == String.Empty)
+            strWaterItems = "All Water Items";
+        strOutput += "\n Water Items: " + strWaterItems;
+
+        strOutput += "\n Food Bins: " + this.GetStringValue("FoodBins");
+        strOutput += "\n Water Bins: " + this.GetStringValue("WaterBins");
 
         if (this.Buffs.HasCustomVar("CurrentOrder"))
             strOutput += "\n Current Order: " + (Orders)(int)this.Buffs.GetCustomVar("CurrentOrder");
