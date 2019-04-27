@@ -79,24 +79,5 @@
 
     </item>
 
-
-
-  </append>
-
-  <!-- Template -->
-  <append xpath="/items/item[@name='drinkJarEmpty']">
-    <property class="Action0">
-      <property name="Class" value="UseOtherSDX, Mods"/> <!-- Class will completely deplete the target cvar -->
-      <property name="Delay" value="1.0"/>
-      <property name="Use_time" value="..."/>
-      <property name="Create_item" value="drinkJarRiverWater"/>  <!-- give them water for now -->
-      <property name="Sound_start" value="bucketfill_water"/>
-      <property name="TargetCVARs" value="MilkLevel" />
-    </property>
-
-    <effect_group name="Drains entity of Milk level">
-      <requirement name="CVarCompare" cvar="MilkLevel" operation="GT" value="100"/>
-      <triggered_effect trigger="onSelfSecondaryActionEnd" action="ModifyCVar" target="other" cvar="MilkLevel" operation="set" value="0"/>
-   </effect_group>
   </append>
 </configs>
