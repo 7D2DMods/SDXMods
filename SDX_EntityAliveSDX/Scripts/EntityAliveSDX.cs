@@ -56,7 +56,6 @@ public class EntityAliveSDX : EntityNPC
     {
         base.Awake();
         Debug.Log("Awake()");
-        this.moveHelper = new EntityMoveHelperSDX(this);
         Debug.Log(" Move Helper Type: " + this.moveHelper.GetType());
     }
 
