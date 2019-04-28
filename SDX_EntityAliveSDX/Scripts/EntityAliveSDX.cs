@@ -579,6 +579,8 @@ public class EntityAliveSDX : EntityNPC
         // disable god mode, since that's enabled by default in the NPC
         this.IsGodMode.Value = false;
 
+        this.bIsChunkObserver = true;
+
         if (this.NPCInfo != null)
             DefaultTraderID = this.NPCInfo.TraderID;
 

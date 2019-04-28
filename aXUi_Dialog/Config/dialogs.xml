@@ -19,7 +19,7 @@
 
       <!-- Quest Lines Entries -->
       <statement id="currentjobs" text="Do any of these tasks sound like something you can do?">
-        <quest_entry id="test_NPCSDX" type="add" listindex="0" />
+        <quest_entry id="tier1_buried_supplies" type="add" listindex="0" />
         <response_entry id="nevermind" />
       </statement>
 

@@ -512,8 +512,8 @@ class EAIMaslowLevel1SDX : EAIApproachSpot
         {
             Debug.Log(" Exception in PerformAction(): " + ex.ToString());
         }
-		
-		return false;
+
+        return false;
     }
 
 
