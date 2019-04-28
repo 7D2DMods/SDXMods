@@ -15,11 +15,13 @@ class MecanimSDX : AvatarController
 
     // Animator support method to keep our current state
     protected AnimatorStateInfo currentBaseState;
+    private AnimatorStateInfo currentOverrideLayer;
+    private AnimatorStateInfo currentFullBodyOverlayLayer;
     public float animSyncWaitTime = 0.5f;
 
     // Our transforms for key elements
-    public Transform bipedTransform;
-    public Transform modelTransform;
+    protected Transform bipedTransform;
+    protected Transform modelTransform;
     protected Transform head;
 
     // This controls the animations if we are holding a weapon.
@@ -34,6 +36,7 @@ class MecanimSDX : AvatarController
     protected float timeAttackAnimationPlaying;
     protected float idleTime;
 
+    protected bool isCrippled;
 
 
     // Indexes used to add more variety to state machines
@@ -74,6 +77,46 @@ class MecanimSDX : AvatarController
 
     protected int movementStateOverride = -1;
 
+
+    protected bool headDismembered;
+    protected bool leftUpperArmDismembered;
+    protected bool leftLowerArmDismembered;
+    protected bool rightUpperArmDismembered;
+    protected bool rightLowerArmDismembered;
+    protected bool leftUpperLegDismembered;
+    protected bool leftLowerLegDismembered;
+    protected bool rightUpperLegDismembered;
+    protected bool rightLowerLegDismembered;
+    protected Transform neckGore;
+    protected Transform neck;
+
+    protected Transform leftUpperArm;
+    protected Transform leftLowerArm;
+    protected Transform rightLowerArm;
+    protected Transform rightUpperArm;
+    protected Transform leftUpperLeg;
+    protected Transform leftLowerLeg;
+    protected Transform rightLowerLeg;
+    protected Transform rightUpperLeg;
+    protected Transform leftUpperArmGore;
+    protected Transform leftLowerArmGore;
+    protected Transform rightUpperArmGore;
+    protected Transform rightLowerArmGore;
+    protected Transform leftUpperLegGore;
+    protected Transform leftLowerLegGore;
+    protected Transform rightLowerLegGore;
+    protected Transform rightUpperLegGore;
+    private bool bBlockLookPosition;
+    private float currentLookWeight;
+    private float lookWeightTarget;
+    private bool isJumpStarted;
+    private AnimatorStateInfo currentAdditiveLayer;
+
+    protected int itemUseTicks;
+    protected HashSet<int> reloadStates = new HashSet<int>();
+    protected HashSet<int> deathStates = new HashSet<int>();
+    protected AnimatorStateInfo currentWeaponHoldLayer;
+
     private MecanimSDX()
     {
         this.entity = base.transform.gameObject.GetComponent<EntityAlive>();
@@ -107,7 +150,7 @@ class MecanimSDX : AvatarController
         if (entityClass.Properties.Values.ContainsKey("RightHandJointName"))
         {
             this.RightHand = entityClass.Properties.Values["RightHandJointName"];
-  
+
         }
     }
 
@@ -121,8 +164,22 @@ class MecanimSDX : AvatarController
         // dummy assign body parts
         this.assignBodyParts();
 
+        Log(" Root Motion: " + this.entity.RootMotion);
+        if(this.entity.RootMotion  )
+        {
+            Log(" Root Motion is enabled.");
+            AvatarRootMotion avatarRootMotion = this.bipedTransform.GetComponent<AvatarRootMotion>();
+            if(avatarRootMotion == null)
+            {
+                Log(" AvatarRootMotion() not found. Adding one.");
+                avatarRootMotion = this.bipedTransform.gameObject.AddComponent<AvatarRootMotion>();
+
+            }
+            Log(" Initializing Root Motion");
+            avatarRootMotion.Init(this, this.anim);
+        }
         // Check if this entity has a weapon or not
-        if (this.rightHandItemTransform != null)
+        if(this.rightHandItemTransform != null)
         {
             Log("Setting Right hand position");
             this.rightHandItemTransform.parent = this.rightHandItemTransform;
@@ -132,6 +189,11 @@ class MecanimSDX : AvatarController
             this.rightHandItemTransform.localEulerAngles = rotation;
             this.SetInRightHand(this.rightHandItemTransform);
         }
+        this.SetInt("WalkType", this.entity.GetWalkType());
+        this.SetBool("IsDead", this.entity.IsDead());
+        this.SetBool("IsAlive", this.entity.IsAlive());
+
+    
     }
 
     public override bool IsAnimationAttackPlaying()
@@ -188,11 +250,13 @@ class MecanimSDX : AvatarController
                 else if (num2 >= 1234f)
                 {
                     this.SetInt("MovementState", 4);
+
                 }
                 else
                 {
                     float num4 = num * num + num3 * num3;
-                    this.SetInt("MovementState", (num4 <= this.entity.moveSpeedAggro * this.entity.moveSpeedAggro) ? ((num4 <= this.entity.moveSpeed * this.entity.moveSpeed) ? ((num4 <= 0.001f) ? 0 : 1) : 2) : 3);
+                    int intMovementState = (num4 <= this.entity.moveSpeedAggro * this.entity.moveSpeedAggro) ? ((num4 <= this.entity.moveSpeed * this.entity.moveSpeed) ? ((num4 <= 0.001f) ? 0 : 1) : 2) : 3;
+                    this.SetInt("MovementState", intMovementState);
                 }
             }
 
@@ -220,6 +284,10 @@ class MecanimSDX : AvatarController
             this.idleTime += Time.deltaTime;
             this.SetFloat("RotationPitch", this.entity.rotation.x);
 
+            // if the entity is in water, flag it, so we'll do the swiming conditions before the movement.
+            this.SetBool("IsInWater", this.entity.IsInWater());
+            //Log("Entity is in Water: " + this.entity.IsInWater());
+
             // This logic handles distributing the attack animations to clients and servers, and keeps them in sync
             this.animSyncWaitTime -= Time.deltaTime;
             if (this.animSyncWaitTime <= 0f)
@@ -228,7 +296,7 @@ class MecanimSDX : AvatarController
 
                 if (this.ChangedAnimationParameters.Count > 0)
                 {
-                    Log("Changed Animation Paramters: " + ChangedAnimationParameters.Count);
+                   Log("Changed Animation Paramters: " + ChangedAnimationParameters.Count);
                     foreach (var each in ChangedAnimationParameters)
                     {
                         Log(each.Value.ToString());
@@ -261,9 +329,135 @@ class MecanimSDX : AvatarController
         }
     }
 
+  
     public override bool IsAnimationSpecialAttackPlaying()
     {
         return this.IsAnimationAttackPlaying();
+    }
+
+    protected void LateUpdate()
+    {
+        if(!this.bipedTransform.gameObject.activeInHierarchy)
+        {
+            return;
+        }
+        if(!this.anim.enabled)
+        {
+            return;
+        }
+        this.bBlockLookPosition = false;
+        //if(this.anim.layerCount > 2)
+        //{
+
+        //    if(!this.anim.IsInTransition(2) && this.anim.GetInteger("HitBodyPart") != 0 && this.IsAnimationHitRunning())
+        //    {
+        //        this.SetInt("HitBodyPart", 0);
+        //        this.SetBool("isCritical", false);
+        //        this.bBlockLookPosition = false;
+        //    }
+        //}
+        this.currentLookWeight = Mathf.Lerp(this.currentLookWeight, this.lookWeightTarget, Time.deltaTime);
+        if(this.bBlockLookPosition || !this.isAllowLookPosition())
+        {
+            this.currentLookWeight = 0f;
+        }
+
+        // base Class
+        try
+        {
+            if(this.entity == null || this.bipedTransform == null || !this.bipedTransform.gameObject.activeInHierarchy)
+            {
+                return;
+            }
+            if(this.anim == null || !this.anim.enabled)
+            {
+                return;
+            }
+            this.updateLayerStateInfo();
+            this.updateSpineRotation();
+            if(this.entity.inventory.holdingItem.Actions[0] != null)
+            {
+                this.entity.inventory.holdingItem.Actions[0].UpdateNozzleParticlesPosAndRot(this.entity.inventory.holdingItemData.actionData[0]);
+            }
+            if(this.entity.inventory.holdingItem.Actions[1] != null)
+            {
+                this.entity.inventory.holdingItem.Actions[1].UpdateNozzleParticlesPosAndRot(this.entity.inventory.holdingItemData.actionData[1]);
+            }
+            int fullPathHash = this.currentBaseState.fullPathHash;
+            bool flag = this.anim.IsInTransition(0);
+            if(!flag)
+            {
+                this.isJumpStarted = false;
+                if(fullPathHash == this.jumpState || fullPathHash == this.fpvJumpState)
+                {
+                    this.SetBool("Jump", false);
+                }
+                if(this.deathStates.Contains(fullPathHash))
+                {
+                    this.SetBool("IsDead", false);
+                }
+                if(this.anim.GetBool("Reload") && this.reloadStates.Contains(this.currentWeaponHoldLayer.fullPathHash))
+                {
+                    this.SetBool("Reload", false);
+                }
+            }
+            if(this.anim.GetBool("ItemUse") && --this.itemUseTicks <= 0)
+            {
+                this.SetBool("ItemUse", false);
+            }
+            if(this.isInDeathAnim)
+            {
+                if((this.currentBaseState.tagHash == AvatarController.deathTag || this.deathStates.Contains(fullPathHash)) && this.currentBaseState.normalizedTime >= 1f && !flag)
+                {
+                    this.isInDeathAnim = false;
+                    if(this.entity.HasDeathAnim)
+                    {
+                        this.entity.emodel.DoRagdoll(DamageResponse.New(true), 999999f);
+                    }
+                }
+                if(this.entity.HasDeathAnim && this.entity.RootMotion && this.entity.isCollidedHorizontally)
+                {
+                    this.isInDeathAnim = false;
+                    this.entity.emodel.DoRagdoll(DamageResponse.New(true), 999999f);
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            Debug.Log(" Exception: " + ex.ToString());
+        }
+    }
+
+    private void updateSpineRotation()
+    {
+       
+    }
+
+    protected void updateLayerStateInfo()
+    {
+        for (int x = 0; x < this.anim.layerCount; x++)
+        {
+            switch (x)
+            {
+                case 0:
+                    this.currentBaseState = this.anim.GetCurrentAnimatorStateInfo(x);
+                    break;
+                case 1:
+                    this.currentOverrideLayer = this.anim.GetCurrentAnimatorStateInfo(x);
+                    break;
+                case 2:
+                    this.currentFullBodyOverlayLayer = this.anim.GetCurrentAnimatorStateInfo(x);
+                    break;
+                case 3:
+                    this.currentAdditiveLayer = this.anim.GetCurrentAnimatorStateInfo(x);
+                    break;
+            }
+        }
+    }
+
+    private bool isAllowLookPosition()
+    {
+        return true;
     }
 
     public override void StartAnimationSpecialAttack(bool _b)
@@ -392,6 +586,12 @@ class MecanimSDX : AvatarController
 
     public override void StartAnimationHit(EnumBodyPartHit _bodyPart, int _dir, int _hitDamage, bool _criticalHit, int _movementState, float _random)
     {
+        this.SetInt("BodyPartHit", (int)_bodyPart);
+        this.SetInt("HitDirection", _dir);
+        this.SetInt("HitDamage", _hitDamage);
+        this.SetBool("CriticalHit", _criticalHit);
+        this.SetInt("MovementState", _movementState);
+        this.SetInt("Random", Mathf.FloorToInt(_random * 100f));
         this.SetRandomIndex("PainIndex");
         this.SetTrigger("Pain");
     }
@@ -442,16 +642,37 @@ class MecanimSDX : AvatarController
         return (!this.modelTransform) ? this.bipedTransform : this.modelTransform;
     }
 
+    public override void CrippleLimb(EnumBodyPartHit _bodyPart, bool restoreState)
+    {
+        if (_bodyPart.IsLeg() && !this.isCrippled && this.entity.GetWalkType() != 5 && this.entity.GetWalkType() != 4)
+        {
+            this.isCrippled = true;
+            this.SetInt("WalkType", 5);
+            this.SetTrigger("LegDamageTrigger");
+        }
+    }
 
     public override void BeginStun(EnumEntityStunType stun, EnumBodyPartHit _bodyPart, Utils.EnumHitDirection _hitDirection, bool _criticalHit, float random)
     {
         this.SetRandomIndex("StunIndex");
         this.SetBool("IsStunned", true);
+
+        this.SetInt("StunType", (int)stun);
+        this.SetInt("StunBodyPart", (int)_bodyPart);
+        this.SetInt("HitDirection", (int)_hitDirection);
+        this.SetBool("isCritical", _criticalHit);
+        this.SetFloat("HitRandomValue", random);
+        this.SetTrigger("BeginStunTrigger");
+        this.ResetTrigger("EndStunTrigger");
+
+
     }
 
     public override void EndStun()
     {
         this.SetBool("IsStunned", false);
+        this.SetBool("isCritical", false);
+        this.SetTrigger("EndStunTrigger");
     }
 
 
@@ -685,6 +906,85 @@ class MecanimSDX : AvatarController
         }
     }
 
+    public override void RemoveLimb(EnumBodyPartHit _bodyPart, bool restoreState)
+    {
+        switch (_bodyPart)
+        {
+            case EnumBodyPartHit.Head:
+                if (!this.headDismembered)
+                {
+                    this.headDismembered = true;
+                    this.neck.localScale = Vector3.zero;
+                    this.SpawnLimbGore(this.neckGore, "Prefabs/HeadGore", restoreState);
+                }
+                break;
+            case EnumBodyPartHit.LeftUpperArm:
+                if (!this.leftUpperArmDismembered)
+                {
+                    this.leftUpperArmDismembered = true;
+                    this.leftUpperArm.localScale = Vector3.zero;
+                    this.SpawnLimbGore(this.leftUpperArmGore, "Prefabs/UpperArmGore", restoreState);
+                }
+                break;
+            case EnumBodyPartHit.RightUpperArm:
+                if (!this.rightUpperArmDismembered)
+                {
+                    this.rightUpperArmDismembered = true;
+                    this.rightUpperArm.localScale = Vector3.zero;
+                    this.SpawnLimbGore(this.rightUpperArmGore, "Prefabs/UpperArmGore", restoreState);
+                }
+                break;
+            case EnumBodyPartHit.LeftUpperLeg:
+                if (!this.leftUpperLegDismembered)
+                {
+                    this.leftUpperLegDismembered = true;
+                    this.leftUpperLeg.localScale = Vector3.zero;
+                    this.SpawnLimbGore(this.leftUpperLegGore, "Prefabs/UpperLegGore", restoreState);
+                }
+                break;
+            case EnumBodyPartHit.RightUpperLeg:
+                if (!this.rightUpperLegDismembered)
+                {
+                    this.rightUpperLegDismembered = true;
+                    this.rightUpperLeg.localScale = Vector3.zero;
+                    this.SpawnLimbGore(this.rightUpperLegGore, "Prefabs/UpperLegGore", restoreState);
+                }
+                break;
+            case EnumBodyPartHit.LeftLowerArm:
+                if (!this.leftLowerArmDismembered)
+                {
+                    this.leftLowerArmDismembered = true;
+                    this.leftLowerArm.localScale = Vector3.zero;
+                    this.SpawnLimbGore(this.leftLowerArmGore, "Prefabs/LowerArmGore", restoreState);
+                }
+                break;
+            case EnumBodyPartHit.RightLowerArm:
+                if (!this.rightLowerArmDismembered)
+                {
+                    this.rightLowerArmDismembered = true;
+                    this.rightLowerArm.localScale = Vector3.zero;
+                    this.SpawnLimbGore(this.rightLowerArmGore, "Prefabs/LowerArmGore", restoreState);
+                }
+                break;
+            case EnumBodyPartHit.LeftLowerLeg:
+                if (!this.leftLowerLegDismembered)
+                {
+                    this.leftLowerLegDismembered = true;
+                    this.leftLowerLeg.localScale = Vector3.zero;
+                    this.SpawnLimbGore(this.leftLowerLegGore, "Prefabs/LowerLegGore", restoreState);
+                }
+                break;
+            case EnumBodyPartHit.RightLowerLeg:
+                if (!this.rightLowerLegDismembered)
+                {
+                    this.rightLowerLegDismembered = true;
+                    this.rightLowerLeg.localScale = Vector3.zero;
+                    this.SpawnLimbGore(this.rightLowerLegGore, "Prefabs/LowerLegGore", restoreState);
+                }
+                break;
+        }
+    }
+
     protected void SpawnLimbGore(Transform parent, string path, bool restoreState)
     {
         if (parent != null)
@@ -712,8 +1012,30 @@ class MecanimSDX : AvatarController
         else
         {
             this.Log("Mapping Body Parts");
-            this.head = this.FindTransform(this.bipedTransform, this.bipedTransform, "Head");
-            this.rightHand = this.FindTransform(this.bipedTransform, this.bipedTransform, this.RightHand);
+            this.head = this.bipedTransform.FindInChilds("Head", false);
+            this.neck = this.bipedTransform.FindInChilds("Neck", false);
+            this.rightHand = this.bipedTransform.FindInChilds(this.entity.GetRightHandTransformName(), false);
+            this.leftUpperLeg = this.bipedTransform.FindInChilds("LeftUpLeg", false);
+            this.leftLowerLeg = this.bipedTransform.FindInChilds("LeftLeg", false);
+            this.rightUpperLeg = this.bipedTransform.FindInChilds("RightUpLeg", false);
+            this.rightLowerLeg = this.bipedTransform.FindInChilds("RightLeg", false);
+            this.leftUpperArm = this.bipedTransform.FindInChilds("LeftArm", false);
+            this.leftLowerArm = this.bipedTransform.FindInChilds("LeftForeArm", false);
+            this.rightUpperArm = this.bipedTransform.FindInChilds("RightArm", false);
+            this.rightLowerArm = this.bipedTransform.FindInChilds("RightForeArm", false);
+            this.neckGore = GameUtils.FindTagInChilds(this.bipedTransform, "L_HeadGore");
+            this.leftUpperArmGore = GameUtils.FindTagInChilds(this.bipedTransform, "L_LeftUpperArmGore");
+            this.leftLowerArmGore = GameUtils.FindTagInChilds(this.bipedTransform, "L_LeftLowerArmGore");
+            this.rightUpperArmGore = GameUtils.FindTagInChilds(this.bipedTransform, "L_RightUpperArmGore");
+            this.rightLowerArmGore = GameUtils.FindTagInChilds(this.bipedTransform, "L_RightLowerArmGore");
+            this.leftUpperLegGore = GameUtils.FindTagInChilds(this.bipedTransform, "L_LeftUpperLegGore");
+            this.leftLowerLegGore = GameUtils.FindTagInChilds(this.bipedTransform, "L_LeftLowerLegGore");
+            this.rightUpperLegGore = GameUtils.FindTagInChilds(this.bipedTransform, "L_RightUpperLegGore");
+            this.rightLowerLegGore = GameUtils.FindTagInChilds(this.bipedTransform, "L_RightLowerLegGore");
+
+
+            //this.head = this.FindTransform(this.bipedTransform, this.bipedTransform, "Head");
+            //this.rightHand = this.FindTransform(this.bipedTransform, this.bipedTransform, this.RightHand);
         }
     }
 

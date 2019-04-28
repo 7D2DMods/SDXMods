@@ -23,7 +23,7 @@ class EntityAliveFarmingAnimalSDX : EntityAliveSDX
         base.Awake();
 
         // So they don't step over each other.
-        this.stepHeight = 0.1f;
+       // this.stepHeight = 0.005f;
 
     }
 
@@ -49,6 +49,20 @@ class EntityAliveFarmingAnimalSDX : EntityAliveSDX
             if (this.isDetailedHeadBodyColliders())
                 component.enabled = false;
             DisplayLog(" After BoundaryBox: " + this.boundingBox.ToCultureInvariantString());
+
+            CapsuleCollider[] componentsInChildren = base.gameObject.GetComponentsInChildren<CapsuleCollider>();
+            for (int i = 0; i < componentsInChildren.Length; i++)
+            {
+                if (!componentsInChildren[i].gameObject.CompareTag("LargeEntityBlocker"))
+                {
+                    componentsInChildren[i].transform.gameObject.layer = 14;
+                }
+            }
+            BoxCollider[] componentsInChildren2 = base.gameObject.GetComponentsInChildren<BoxCollider>();
+            for (int j = 0; j < componentsInChildren2.Length; j++)
+            {
+                componentsInChildren2[j].transform.gameObject.layer = 14;
+            }
         }
 
     }
@@ -59,12 +73,13 @@ class EntityAliveFarmingAnimalSDX : EntityAliveSDX
         base.CopyPropertiesFromEntityClass();
         EntityClass entityClass = EntityClass.list[this.entityClass];
      
-        if (entityClass.Properties.Values.ContainsKey("BoundaryBox"))
-        {
-            Vector3 dim = StringParsers.ParseVector3(entityClass.Properties.Values["BoundaryBox"], 0, -1);
-            ConfigureBounaryBox(dim);
-        }
+        //if (entityClass.Properties.Values.ContainsKey("BoundaryBox"))
+        //{
+        //    Vector3 dim = StringParsers.ParseVector3(entityClass.Properties.Values["BoundaryBox"], 0, -1);
+        //    ConfigureBounaryBox(dim);
+        //}
             InvokeRepeating("CheckAnimalEvent", 1f, 60f);
+  
 
     }
 
@@ -87,23 +102,23 @@ class EntityAliveFarmingAnimalSDX : EntityAliveSDX
     // read in the cvar for sizeScale and adjust it based on the buff
     public void AdjustSizeForStage()
     {
-        float size = this.Buffs.GetCustomVar("$sizeScale");
-        if (size > 0.0f)
-        {
-            this.gameObject.transform.localScale = new Vector3(size, size, size);
-            //ConfigureBounaryBox( this.gameObject.transform.localScale);
-        }
+        //float size = this.Buffs.GetCustomVar("$sizeScale");
+        //if (size > 0.0f)
+        //{
+        //    this.gameObject.transform.localScale = new Vector3(size, size, size);
+        //    //ConfigureBounaryBox( this.gameObject.transform.localScale);
+        //}
     }
 
 
     public override void OnUpdateLive()
     {
-        AdjustSizeForStage();
+       // AdjustSizeForStage();
 
         if (this.Buffs.HasCustomVar("Herd") )
         {
             EntityAliveFarmingAnimalSDX temp = this.world.GetEntity((int)this.Buffs.GetCustomVar("Herd")) as EntityAliveFarmingAnimalSDX;
-            if (temp && temp.entityId != this.entityId)
+            if (temp)
             {
                 this.Buffs.SetCustomVar("CurrentOrder", (float)Orders.None, true);
                 this.setHomeArea(temp.GetBlockPosition(), 10);
