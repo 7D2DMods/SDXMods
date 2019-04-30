@@ -5,7 +5,6 @@
     <dialog id="GenericNPCWithQuest" startstatementid="start">
       <statement id="start" text="dialog_trader_statement_start">
         <response_entry id="FollowMe" />   
-        <response_entry id="jobshave" />
         <response_entry id="ShowMe" />
         <response_entry id="StayHere" />
         <response_entry id="GuardHere" />
