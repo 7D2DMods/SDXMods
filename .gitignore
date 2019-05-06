@@ -1,0 +1,10 @@
+
+.vs/Mods/v15/Server/sqlite3/db.lock
+.vs/Mods/v15/Server/sqlite3/storage.ide
+.vs/Mods/v15/Server/sqlite3/storage.ide-shm
+.vs/Mods/v15/Server/sqlite3/storage.ide-wal
+Mods.csproj
+obj/Debug/DesignTimeResolveAssemblyReferencesInput.cache
+obj/Debug/Mods.csproj.CoreCompileInputs.cache
+obj/Debug/Mods.csprojAssemblyReference.cache
+Properties/AssemblyInfo.cs
