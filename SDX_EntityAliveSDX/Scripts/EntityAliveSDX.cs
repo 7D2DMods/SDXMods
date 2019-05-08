@@ -677,7 +677,7 @@ public class EntityAliveSDX : EntityNPC
     {
         base.Write(_bw);
         _bw.Write(this.strMyName);
-        this.Buffs.Write(_bw, true);
+        this.Buffs.Write(_bw, false);
         this.QuestJournal.Write(_bw);
         String strPatrolCoordinates = "";
         foreach (Vector3 temp in this.PatrolCoordinates)
