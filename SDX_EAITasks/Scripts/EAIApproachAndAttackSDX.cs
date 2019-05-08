@@ -20,6 +20,7 @@ class EAIApproachAndAttackSDX : EAIApproachAndAttackTarget
     private float maxChaseTime;
 
     private bool blDisplayLog = false;
+    private EntityAlive entityTarget;
 
     public void DisplayLog(String strMessage)
     {
@@ -28,6 +29,7 @@ class EAIApproachAndAttackSDX : EAIApproachAndAttackTarget
     }
     public override void Start()
     {
+        this.entityTarget = this.theEntity.GetAttackTarget();
         this.entityTargetPos = this.entityTarget.position;
         this.entityTargetVel = Vector3.zero;
         this.isTargetToEat = false;

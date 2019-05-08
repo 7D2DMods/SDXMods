@@ -16,6 +16,8 @@ class EAIPatrolSDX : EAIApproachSpot
     // Controls the delay in between movements.
     private float PatrolSpeed = 2f;
 
+
+    private int taskTimeOut = 0;
     private bool blDisplayLog = false;
     public void DisplayLog(String strMessage)
     {
@@ -32,19 +34,7 @@ class EAIPatrolSDX : EAIApproachSpot
 
         entityAliveSDX = (_theEntity as EntityAliveSDX);
     }
-    //public bool FetchOrders()
-    //{
-    //    DisplayLog(" Fetch Orders");
-    
-    //    if (entityAliveSDX)
-    //    {
-    //        DisplayLog(" Patrol Points: " + entityAliveSDX.PatrolCoordinates.Count);
-    //        if (entityAliveSDX.PatrolCoordinates.Count > 2)
-    //            return true;
-    //    }
-
-    //    return false;
-    //}
+ 
 
     public void SetPatrolVectors()
     {
@@ -112,8 +102,14 @@ class EAIPatrolSDX : EAIApproachSpot
 
     public override bool Continue()
     {
-        // No order and no patrol. Do reverse ( != checks on these, rather than == as it can leave the entity imprecise.
-        bool result = false;
+
+        if(++this.taskTimeOut > 40)
+        {
+            this.taskTimeOut = 0;
+            return false;
+        }
+            // No order and no patrol. Do reverse ( != checks on these, rather than == as it can leave the entity imprecise.
+            bool result = false;
         if (entityAliveSDX)
             result = entityAliveSDX.CanExecuteTask(EntityAliveSDX.Orders.Patrol);
 
@@ -173,7 +169,7 @@ class EAIPatrolSDX : EAIApproachSpot
         updatePath();
     }
 
-    public override void updatePath()
+    public void updatePath()
     {
         if (this.theEntity.IsScoutZombie)
         {

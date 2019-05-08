@@ -32,7 +32,7 @@ class EAIMaslowLevel1SDX : EAIApproachSpot
     // List<Vector3> lstWaterBlocks = new List<Vector3>();
 
     public bool hadPath;
-    private bool blDisplayLog = true;
+    private bool blDisplayLog = false;
     private Vector3 investigatePos;
     private Vector3 seekPos;
     private int pathRecalculateTicks;
@@ -268,14 +268,15 @@ class EAIMaslowLevel1SDX : EAIApproachSpot
         if (++this.investigateTicks > 40)
         {
             this.investigateTicks = 0;
-            if (!this.theEntity.HasInvestigatePosition)
-                return false; // no invesitgative position
+            return false;
+            //if (!this.theEntity.HasInvestigatePosition)
+            //    return false; // no invesitgative position
 
-            float sqrMagnitude = (this.investigatePos - this.theEntity.InvestigatePosition).sqrMagnitude;
-            if (sqrMagnitude >= 4f)
-            {
-                return false; // not close enough.
-            }
+            //float sqrMagnitude = (this.investigatePos - this.theEntity.InvestigatePosition).sqrMagnitude;
+            //if (sqrMagnitude >= 4f)
+            //{
+            //    return false; // not close enough.
+            //}
         }
 
         float sqrMagnitude2 = (this.seekPos - this.theEntity.position).sqrMagnitude;
@@ -289,230 +290,219 @@ class EAIMaslowLevel1SDX : EAIApproachSpot
     // Virtual methods to overload, so we can choose what kind of action to take.
     public virtual bool PerformAction()
     {
-        try
+        DisplayLog("PerformAction() ");
+        // Look at the target.
+
+        //if (this.investigatePos != Vector3.zero)
+        //{
+            this.theEntity.SetLookPosition(seekPos);
+
+        //    Ray lookRay = new Ray(this.theEntity.position, theEntity.GetLookVector());
+        //    if (!Voxel.Raycast(this.theEntity.world, lookRay, Constants.cDigAndBuildDistance, -538480645, 4095, 0f))
+        //        return false; // Not seeing the target.
+
+        //    if (!Voxel.voxelRayHitInfo.bHitValid)
+        //        return false; // Missed the target. Overlooking?
+        //}
+        DisplayLog("Before: " + this.theEntity.ToString());
+
+        BlockValue checkBlock = theEntity.world.GetBlock(new Vector3i(seekPos.x, seekPos.y, seekPos.z));
+
+        // Original hand item.
+        ItemClass original = this.theEntity.inventory.holdingItem;
+
+        // Look at the water, then execute the action on the empty jar.
+        this.theEntity.SetLookPosition(seekPos);
+
+        // Execute the drinking process
+        if (CheckIncentive(this.lstThirstyBuffs))
         {
+            DisplayLog("Thirsty Check Block: " + checkBlock.Block.GetBlockName());
+
+            ItemValue item = null;
 
 
-            DisplayLog("PerformAction() ");
-            // Look at the target.
-
-            //if (this.investigatePos != Vector3.zero)
-            //{
-            this.theEntity.SetLookPosition(seekPos);
-
-            //    Ray lookRay = new Ray(this.theEntity.position, theEntity.GetLookVector());
-            //    if (!Voxel.Raycast(this.theEntity.world, lookRay, Constants.cDigAndBuildDistance, -538480645, 4095, 0f))
-            //        return false; // Not seeing the target.
-
-            //    if (!Voxel.voxelRayHitInfo.bHitValid)
-            //        return false; // Missed the target. Overlooking?
-            //}
-            DisplayLog("Before: " + this.theEntity.ToString());
-
-            BlockValue checkBlock = theEntity.world.GetBlock(new Vector3i(seekPos.x, seekPos.y, seekPos.z));
-
-            // Original hand item.
-            ItemClass original = this.theEntity.inventory.holdingItem;
-
-            // Look at the water, then execute the action on the empty jar.
-            this.theEntity.SetLookPosition(seekPos);
-
-            // Execute the drinking process
-            if (CheckIncentive(this.lstThirstyBuffs))
+            // Is it a water block?
+            if (checkBlock.Block.blockMaterial.IsLiquid)
             {
-                DisplayLog("Thirsty Check Block: " + checkBlock.Block.GetBlockName());
-
-                ItemValue item = null;
-
-
-                // Is it a water block?
-                if (checkBlock.Block.blockMaterial.IsLiquid)
-                {
-                    // This is the actual item we want to drink out of. The above is just to deplete the water source.
-                    this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem("drinkJarEmpty", false));
-                    this.theEntity.Use(true);
-                    this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem(original.Name, false));
-
-                    return true;
-                }
-                else if (this.lstWaterBins.Contains(checkBlock.Block.GetBlockName()))  // If the water bins are configured, then look inside for something to drink. This is for NPCs, rather than cows.
-                {
-                    DisplayLog(" Checking water Bin: " + checkBlock.Block.GetBlockName());
-                    TileEntityLootContainer tileEntityLootContainer = this.theEntity.world.GetTileEntity(Voxel.voxelRayHitInfo.hit.clrIdx, new Vector3i(seekPos)) as TileEntityLootContainer;
-                    if (tileEntityLootContainer == null)
-                        return false; // it's not a loot container.
-
-
-                    // Check if it has any water in it.
-                    if (CheckContents(tileEntityLootContainer, this.lstWaterItems, "Water") != null)
-                    {
-                        DisplayLog(" Found a water item");
-                        item = GetItemFromContainer(tileEntityLootContainer, this.lstWaterItems, "Water");
-                    }
-                }
-
-                // Check the back pack
-                else if (CheckContents(this.theEntity.lootContainer, this.lstWaterItems, "Water") != null)
-                {
-                    DisplayLog(" Checking NPCs backpack ");
-                    item = GetItemFromContainer(this.theEntity.lootContainer, this.lstWaterItems, "Water");
-                }
-
-                if (item != null)
-                {
-
-                    DisplayLog(" Drinking: " + item.ItemClass.GetItemName());
-                    // Hold the food item.
-                    this.theEntity.inventory.SetBareHandItem(item);
-                    this.theEntity.Attack(true);
-                    // We want to consume the food, but the consumption of food isn't supported on the non-players, so just fire off the buff 
-                    this.theEntity.FireEvent(MinEventTypes.onSelfPrimaryActionEnd);
-                    this.theEntity.FireEvent(MinEventTypes.onSelfHealedSelf);
-
-                    DisplayLog(" Drinking");
-                    // restore the hand item.
-                    this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem(original.Name, false));
-
-                    return true;
-                }
-
-
-
-                // see if the block is an entity, rather than a watering hold. 
-                float milkLevel = this.GetEntityWater();
-                if (milkLevel > 0)
-                {
-                    if (this.theEntity.Buffs.HasCustomVar("Mother"))
-                    {
-                        DisplayLog("Checking For mother");
-                        int MotherID = (int)this.theEntity.Buffs.GetCustomVar("Mother");
-                        EntityAliveSDX MotherEntity = this.theEntity.world.GetEntity(MotherID) as EntityAliveSDX;
-                        if (MotherEntity)
-                        {
-                            DisplayLog(" Draining Mommy of milk");
-                            MotherEntity.Buffs.SetCustomVar("MilkLevel", 0f, true);
-                            this.theEntity.Buffs.SetCustomVar("$foodAmountAdd", 50f, true);
-                            this.theEntity.Buffs.SetCustomVar("$waterAmountAdd", 50f, true);
-                        }
-                    }
-                }
                 // This is the actual item we want to drink out of. The above is just to deplete the water source.
-                this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem("drinkJarBoiledWater", false));
+                this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem("drinkJarEmpty", false));
+                this.theEntity.Use(true);
+                this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem(original.Name, false));
+
+                return true;
+            }
+            else if (this.lstWaterBins.Contains(checkBlock.Block.GetBlockName()))  // If the water bins are configured, then look inside for something to drink. This is for NPCs, rather than cows.
+            {
+                DisplayLog(" Checking water Bin: " + checkBlock.Block.GetBlockName());
+                TileEntityLootContainer tileEntityLootContainer = this.theEntity.world.GetTileEntity(Voxel.voxelRayHitInfo.hit.clrIdx, new Vector3i(seekPos)) as TileEntityLootContainer;
+                if (tileEntityLootContainer == null)
+                    return false; // it's not a loot container.
+
+
+                // Check if it has any water in it.
+                if (CheckContents(tileEntityLootContainer, this.lstWaterItems, "Water") != null)
+                {
+                    DisplayLog(" Found a water item");
+                    item = GetItemFromContainer(tileEntityLootContainer, this.lstWaterItems, "Water");
+                }
+            }
+
+            // Check the back pack
+            else if (CheckContents(this.theEntity.lootContainer, this.lstWaterItems, "Water") != null)
+            {
+                DisplayLog(" Checking NPCs backpack ");
+                item = GetItemFromContainer(this.theEntity.lootContainer, this.lstWaterItems, "Water");
+            }
+
+            if (item != null)
+            {
+
+                DisplayLog(" Drinking: " + item.ItemClass.GetItemName());
+                // Hold the food item.
+                this.theEntity.inventory.SetBareHandItem(item);
                 this.theEntity.Attack(true);
-                // Then we want to fire off the event on the water we are drinking.
+                // We want to consume the food, but the consumption of food isn't supported on the non-players, so just fire off the buff 
                 this.theEntity.FireEvent(MinEventTypes.onSelfPrimaryActionEnd);
+                this.theEntity.FireEvent(MinEventTypes.onSelfHealedSelf);
 
                 DisplayLog(" Drinking");
                 // restore the hand item.
                 this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem(original.Name, false));
 
+                return true;
             }
 
-            if (CheckIncentive(this.lstHungryBuffs))
+
+
+            // see if the block is an entity, rather than a watering hold. 
+            float milkLevel = this.GetEntityWater();
+            if (milkLevel > 0)
             {
-                DisplayLog("Hunger Check Block: " + checkBlock.Block.GetBlockName());
-                ItemValue item = null;
-
-                if (this.lstFoodBins.Contains(checkBlock.Block.GetBlockName()))
+                if (this.theEntity.Buffs.HasCustomVar("Mother"))
                 {
-                    TileEntityLootContainer tileEntityLootContainer = this.theEntity.world.GetTileEntity(Voxel.voxelRayHitInfo.hit.clrIdx, new Vector3i(seekPos)) as TileEntityLootContainer;
-                    if (tileEntityLootContainer == null)
-                        return false; // it's not a loot container.
-
-
-                    // Check if it has any food on it.
-                    if (CheckContents(tileEntityLootContainer, this.lstFoodItems, "Food") != null)
+                    DisplayLog("Checking For mother");
+                    int MotherID = (int)this.theEntity.Buffs.GetCustomVar("Mother");
+                    EntityAliveSDX MotherEntity = this.theEntity.world.GetEntity(MotherID) as EntityAliveSDX;
+                    if (MotherEntity)
                     {
-                        DisplayLog(" Found Food in food bin.");
-                        item = GetItemFromContainer(tileEntityLootContainer, lstFoodItems, "Food");
-                    }
-                }
-
-                // Check the back pack
-                else if (CheckContents(this.theEntity.lootContainer, this.lstWaterItems, "Food") != null)
-                {
-                    DisplayLog(" Found Food in the backpack");
-                    item = GetItemFromContainer(this.theEntity.lootContainer, this.lstFoodItems, "Food");
-                }
-
-                if (item != null)
-                {
-                    DisplayLog(" entity is eating: " + item.ItemClass.GetItemName());
-                    // Hold the food item.
-                    this.theEntity.inventory.SetBareHandItem(item);
-                    this.theEntity.Attack(true);
-                    // We want to consume the food, but the consumption of food isn't supported on the non-players, so just fire off the buff 
-                    this.theEntity.FireEvent(MinEventTypes.onSelfPrimaryActionEnd);
-                    this.theEntity.FireEvent(MinEventTypes.onSelfHealedSelf);
-
-                    DisplayLog(" Eating");
-                    // restore the hand item.
-                    this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem(original.Name, false));
-                }
-            }
-
-            if (CheckIncentive(this.lstSanitationBuffs))
-            {
-                if (this.lstSanitation.Contains(checkBlock.Block.GetBlockName()))
-                    this.theEntity.Buffs.CVars["$solidWasteAmount"] = 0;
-
-                // No toilets.
-                if (this.lstSanitation.Count == 0)
-                {
-                    // No Sanitation location? Let it go where you are.
-                    this.theEntity.Buffs.CVars["$solidWasteAmount"] = 0;
-
-                    // if there's no block, don't do anything.
-                    if (!String.IsNullOrEmpty(strSanitationBlock))
-                    {
-                        Vector3i sanitationBlock = new Vector3i(this.theEntity.position);
-                        this.theEntity.world.SetBlockRPC(sanitationBlock, Block.GetBlockValue(this.strSanitationBlock, false));
+                        DisplayLog(" Draining Mommy of milk");
+                        MotherEntity.Buffs.SetCustomVar("MilkLevel", 0f, true);
+                        this.theEntity.Buffs.SetCustomVar("$foodAmountAdd", 50f, true);
+                        this.theEntity.Buffs.SetCustomVar("$waterAmountAdd", 50f, true);
                     }
                 }
             }
+            // This is the actual item we want to drink out of. The above is just to deplete the water source.
+            this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem("drinkJarBoiledWater", false));
+            this.theEntity.Attack(true);
+            // Then we want to fire off the event on the water we are drinking.
+            this.theEntity.FireEvent(MinEventTypes.onSelfPrimaryActionEnd);
 
-            if (CheckIncentive(this.lstProductionBuffs))
+            DisplayLog(" Drinking");
+            // restore the hand item.
+            this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem(original.Name, false));
+
+        }
+
+        if (CheckIncentive(this.lstHungryBuffs))
+        {
+            DisplayLog("Hunger Check Block: " + checkBlock.Block.GetBlockName());
+            ItemValue item = null;
+
+            if (this.lstFoodBins.Contains(checkBlock.Block.GetBlockName()))
             {
-                if (this.lstBeds.Contains(checkBlock.Block.GetBlockName()))
+                TileEntityLootContainer tileEntityLootContainer = this.theEntity.world.GetTileEntity(Voxel.voxelRayHitInfo.hit.clrIdx, new Vector3i(seekPos)) as TileEntityLootContainer;
+                if (tileEntityLootContainer == null)
+                    return false; // it's not a loot container.
+
+
+                // Check if it has any food on it.
+                if (CheckContents(tileEntityLootContainer, this.lstFoodItems, "Food") != null)
                 {
-                    DisplayLog(" My target block is in my approved list. ");
-                    TileEntityLootContainer tileEntityLootContainer = this.theEntity.world.GetTileEntity(Voxel.voxelRayHitInfo.hit.clrIdx, new Vector3i(seekPos)) as TileEntityLootContainer;
-                    if (tileEntityLootContainer != null)
+                    DisplayLog(" Found Food in food bin.");
+                    item = GetItemFromContainer(tileEntityLootContainer, lstFoodItems, "Food");
+                }
+            }
+
+            // Check the back pack
+            else if (CheckContents(this.theEntity.lootContainer, this.lstWaterItems, "Food") != null)
+            {
+                DisplayLog(" Found Food in the backpack");
+                item = GetItemFromContainer(this.theEntity.lootContainer, this.lstFoodItems, "Food");
+            }
+
+            if (item != null)
+            {
+                DisplayLog(" entity is eating: " + item.ItemClass.GetItemName());
+                // Hold the food item.
+                this.theEntity.inventory.SetBareHandItem(item);
+                this.theEntity.Attack(true);
+                // We want to consume the food, but the consumption of food isn't supported on the non-players, so just fire off the buff 
+                this.theEntity.FireEvent(MinEventTypes.onSelfPrimaryActionEnd);
+                this.theEntity.FireEvent(MinEventTypes.onSelfHealedSelf);
+
+                DisplayLog(" Eating");
+                // restore the hand item.
+                this.theEntity.inventory.SetBareHandItem(ItemClass.GetItem(original.Name, false));
+            }
+        }
+
+        if (CheckIncentive(this.lstSanitationBuffs))
+        {
+            if (this.lstSanitation.Contains(checkBlock.Block.GetBlockName()))
+                this.theEntity.Buffs.CVars["$solidWasteAmount"] = 0;
+
+            // No toilets.
+            if (this.lstSanitation.Count == 0)
+            {
+                // No Sanitation location? Let it go where you are.
+                this.theEntity.Buffs.CVars["$solidWasteAmount"] = 0;
+
+                // if there's no block, don't do anything.
+                if (!String.IsNullOrEmpty(strSanitationBlock))
+                {
+                    Vector3i sanitationBlock = new Vector3i(this.theEntity.position);
+                    this.theEntity.world.SetBlockRPC(sanitationBlock, Block.GetBlockValue(this.strSanitationBlock, false));
+                }
+            }
+        }
+
+        if (CheckIncentive(this.lstProductionBuffs))
+        {
+            if (this.lstBeds.Contains(checkBlock.Block.GetBlockName()))
+            {
+                DisplayLog(" My target block is in my approved list. ");
+                TileEntityLootContainer tileEntityLootContainer = this.theEntity.world.GetTileEntity(Voxel.voxelRayHitInfo.hit.clrIdx, new Vector3i(seekPos)) as TileEntityLootContainer;
+                if (tileEntityLootContainer != null)
+                {
+                    DisplayLog(" It's a TileEntity. That's good.");
+                    foreach (ProductionItem item in this.lstProductionItem)
                     {
-                        DisplayLog(" It's a TileEntity. That's good.");
-                        foreach (ProductionItem item in this.lstProductionItem)
+                        DisplayLog(" Adding " + item.item.GetItemId());
+                        // Add the item to the loot container, and reset the cvar, if it's available.
+                        tileEntityLootContainer.AddItem(new ItemStack(item.item, item.Count));
+                        if (!String.IsNullOrEmpty(item.cvar) && this.theEntity.Buffs.HasBuff(item.cvar))
                         {
-                            DisplayLog(" Adding " + item.item.GetItemId());
-                            // Add the item to the loot container, and reset the cvar, if it's available.
-                            tileEntityLootContainer.AddItem(new ItemStack(item.item, item.Count));
-                            if (!String.IsNullOrEmpty(item.cvar) && this.theEntity.Buffs.HasBuff(item.cvar))
-                            {
-                                this.theEntity.Buffs.CVars[item.cvar] = 0;
-                                this.theEntity.Buffs.RemoveBuff(this.strProductionFinishedBuff, true);
-                            }
+                            this.theEntity.Buffs.CVars[item.cvar] = 0;
+                            this.theEntity.Buffs.RemoveBuff(this.strProductionFinishedBuff, true);
                         }
                     }
-                    else
-                        DisplayLog(" Not a tile entity.");
                 }
                 else
-                    DisplayLog(" Not an approved block: " + checkBlock.Block.GetBlockName());
+                    DisplayLog(" Not a tile entity.");
             }
             else
-            {
-                DisplayLog(" No Bed Time buff incentive");
-            }
-
-            DisplayLog("After: " + this.theEntity.ToString());
-            this.theEntity.SetInvestigatePosition(Vector3.zero, 0);
-            this.theEntity.Buffs.AddBuff("buffMaslowCoolDown", -1, true);
-            return false;
+                DisplayLog(" Not an approved block: " + checkBlock.Block.GetBlockName());
         }
-        catch (Exception ex)
+        else
         {
-            Debug.Log(" Exception in PerformAction(): " + ex.ToString());
+            DisplayLog(" No Bed Time buff incentive");
         }
 
+        DisplayLog("After: " + this.theEntity.ToString());
+        this.theEntity.SetInvestigatePosition(Vector3.zero, 0);
+        this.theEntity.Buffs.AddBuff("buffMaslowCoolDown", -1, true);
         return false;
     }
 

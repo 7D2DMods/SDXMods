@@ -16,7 +16,10 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
 
     public EntityAliveSDX entityAliveSDX;
 
-    private bool blDisplayLog = false;
+    private bool blDisplayLog = true;
+    private EntityAlive entityTarget;
+    private bool isTargetToEat;
+
     public void DisplayLog(String strMessage)
     {
         if (blDisplayLog)
@@ -61,6 +64,8 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
                 return false;
             }
         }
+
+        DisplayLog(" ConfigureTargetEntity()");
         // Search in the bounds are to try to find the most appealing entity to follow.
         Bounds bb = new Bounds(this.theEntity.position, new Vector3(30f, 20f, 30f));
         this.theEntity.world.GetEntitiesInBounds(typeof(EntityAlive), bb, this.NearbyEntities);
@@ -73,6 +78,7 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
                 // Check the entity against the incentives
                 if (entityAliveSDX.CheckIncentive(this.lstIncentives, x))
                 {
+                    DisplayLog(" Found my Target: " + x.EntityName);
                     this.entityTarget = x;
                     return true;
                 }
@@ -98,24 +104,29 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
                 DisplayLog(" CanExecute() Set Patrol Point? " + result);
             }
         }
-        if (!this.theEntity.Buffs.HasCustomVar("Leader"))
-        {
-            DisplayLog("CanExecute() No Leader");
-            result = false;
-        }
+    
         // Change the distance allowed each time. This will give it more of a variety in how close it can get to you.
         distanceToEntity = UnityEngine.Random.Range(2f, 5.0f);
 
         // If there is an entity in bounds, then let this AI Task roceed. Otherwise, don't do anything with it.
+        result = ConfigureTargetEntity();
         if (result)
         {
-            result = ConfigureTargetEntity();
             DisplayLog("CanExecute() Configure Target Result: " + result);
         }
 
         DisplayLog("CanExecute() End: " + result);
         return result;
 
+    }
+
+    public override void Start()
+    {
+        this.entityTargetPos = this.entityTarget.position;
+        this.entityTargetVel = Vector3.zero;
+        this.isTargetToEat = false;
+        this.theEntity.IsEating = false;
+        this.pathCounter = 0;
     }
 
     public override bool Continue()
@@ -144,18 +155,28 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
         if (pathCounter == 0) // briefly pause if you are at the end of the path to let other tasks run
             result = false;
 
-        if (this.theEntity.Buffs.HasCustomVar("Leader"))
-            if ((int)this.theEntity.Buffs.GetCustomVar("Leader") == 0)
-                result = false;
-            else
-                result = false;
-
-        if (result)
-            result = ConfigureTargetEntity();
+        result = ConfigureTargetEntity();
 
         DisplayLog("Continue() End: " + result);
         return result;
 
+    }
+
+    public float GetTargetXZDistanceSq(int estimatedTicks)
+    {
+        Vector3 vector = this.entityTarget.position;
+        vector += this.entityTargetVel * (float)estimatedTicks;
+        if (this.isTargetToEat)
+        {
+            EModelBase emodel = this.entityTarget.emodel;
+            if (emodel && emodel.bipedPelvisTransform)
+            {
+                vector = emodel.bipedPelvisTransform.position + Origin.position;
+            }
+        }
+        Vector3 vector2 = this.theEntity.position + this.theEntity.motion * (float)estimatedTicks - vector;
+        vector2.y = 0f;
+        return vector2.sqrMagnitude;
     }
 
     public override void Update()
@@ -173,7 +194,7 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
 
         // Find the location of the entity, and figure out where it's at.
         position = this.entityTarget.position;
-        targetXZDistanceSq = base.GetTargetXZDistanceSq(6);
+        targetXZDistanceSq = GetTargetXZDistanceSq(6);
 
         if (entityAliveSDX)
         {
