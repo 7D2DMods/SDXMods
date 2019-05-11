@@ -110,18 +110,18 @@ class EAIRunAwayFromEntitySDX :  EAIRunawayWhenHurt
 
                 if (x.IsDead())
                 {
-                    DisplayLog(" One of my factions has died. Fleeing, and abandoning the herd");
-                    this.fleeDistance = 100;
-                    if (x.entityThatKilledMe != null)
-                    {
-                        DisplayLog(" I am fleeing: " + x.entityThatKilledMe.EntityName);
-                        this.avoidEntity = x.entityThatKilledMe;
-                    }
-                    else
-                    {
+                    //DisplayLog(" One of my factions has died. Fleeing, and abandoning the herd");
+                    //this.fleeDistance = 100;
+                    //if (x.entityThatKilledMe != null)
+                    //{
+                    //    DisplayLog(" I am fleeing: " + x.entityThatKilledMe.EntityName);
+                    //    this.avoidEntity = x.entityThatKilledMe;
+                    //}
+                    //else
+                    //{
                         DisplayLog(" I don not know who killed my friend, so i am running from " + x.EntityName);
                         this.avoidEntity = x;
-                    }
+                   // }
                     return true;
                 }
                 

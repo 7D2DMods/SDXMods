@@ -20,6 +20,7 @@ public class EntityAliveSDX : EntityNPC
 {
     public QuestJournal QuestJournal = new QuestJournal();
     public List<String> lstQuests = new List<String>();
+
     List<String> lstHungryBuffs = new List<String>();
     List<String> lstThirstyBuffs = new List<String>();
 
@@ -45,18 +46,11 @@ public class EntityAliveSDX : EntityNPC
 
     public System.Random random = new System.Random();
 
-    private bool blDisplayLog = false;
+    private bool blDisplayLog = true;
     public void DisplayLog(String strMessage)
     {
         if (blDisplayLog && !this.IsDead())
             Debug.Log(this.entityName + ": " + strMessage);
-    }
-
-    protected override void Awake()
-    {
-        base.Awake();
-        Debug.Log("Awake()");
-        Debug.Log(" Move Helper Type: " + this.moveHelper.GetType());
     }
 
     // Used for maslow
@@ -74,7 +68,7 @@ public class EntityAliveSDX : EntityNPC
         bool result = false;
         foreach (String strIncentive in lstIncentives)
         {
-            //  DisplayLog(" Checking Incentive: " + strIncentive);
+            DisplayLog(" Checking Incentive: " + strIncentive);
             // Check if the entity that is looking at us has the right buff for us to follow.
             if (this.Buffs.HasBuff(strIncentive))
                 result = true;
@@ -88,7 +82,7 @@ public class EntityAliveSDX : EntityNPC
             }
 
             // Then we check if the control mechanism is an item being held.
-            if (inventory.holdingItem.Name == strIncentive)
+            if (entity.inventory.holdingItem.Name == strIncentive)
                 result = true;
 
             // if we are true here, it means we found a match to our entity.
@@ -97,7 +91,6 @@ public class EntityAliveSDX : EntityNPC
         }
         return result;
     }
-
 
     public float GetFloatValue(String strProperty)
     {
@@ -345,43 +338,6 @@ public class EntityAliveSDX : EntityNPC
         this.moveSpeedAggroMax = vector.y;
 
     }
-    public override void SetAttackTarget(EntityAlive _attackTarget, int _attackTargetTime)
-    {
-
-
-        RestoreSpeed();
-        base.SetAttackTarget(_attackTarget, _attackTargetTime);
-    }
-
-    // Since the entity will attack anything that gets in its way, throttle it so we can do some extra checks.
-    public override bool Attack(bool _bAttackReleased)
-    {
-
-        if (!_bAttackReleased && !this.IsAttackValid())
-            return false;
-
-        DisplayLog("Attack():");
-
-        this.attackingTime = 60;
-
-        // Check if there's a door in our way, then open it.
-        if (this.attackTarget == null)
-        {
-            // If a door is found, try to open it. If it returns false, start attacking it.
-            if (OpenDoor())
-                return true;
-        }
-
-        if ( this.GetAttackTarget() != null )
-            this.RotateTo( this.GetAttackTarget() , 30f, 30f);
-
-        ItemAction itemAction = this.inventory.holdingItem.Actions[0];
-        if (itemAction != null)
-            itemAction.ExecuteAction(this.inventory.holdingItemData.actionData[0], _bAttackReleased);
-
-        DisplayLog("Attack!");
-        return true;
-    }
 
     public override EntityActivationCommand[] GetActivationCommands(Vector3i _tePos, EntityAlive _entityFocusing)
     {
@@ -406,11 +362,8 @@ public class EntityAliveSDX : EntityNPC
         // Look at the entity that is talking to you.
         this.SetLookPosition(_entityFocusing.getHeadPosition());
 
-        // Add a reference for the dialog otherEntitySDX to the UI, since the respondent doesn't always carry forward
-        LocalPlayerUI uiforPlayer = LocalPlayerUI.GetUIForPlayer(_entityFocusing as EntityPlayerLocal);
-        uiforPlayer.xui.Dialog.otherEntitySDX = this;
+        _entityFocusing.Buffs.SetCustomVar("CurrentNPC", (float)this.entityId, true);
         base.OnEntityActivated(_indexInBlockActivationCommands, _tePos, _entityFocusing);
-
 
         return true;
     }
@@ -441,13 +394,13 @@ public class EntityAliveSDX : EntityNPC
             case "StayHere":
                 this.Buffs.SetCustomVar("CurrentOrder", (float)EntityAliveSDX.Orders.Stay, true);
                 this.GuardPosition = this.position;
-                this.getMoveHelper().Stop();
+                this.moveHelper.Stop();
                 break;
             case "GuardHere":
                 this.Buffs.SetCustomVar("CurrentOrder", (float)EntityAliveSDX.Orders.Stay, true);
                 this.SetLookPosition(player.GetLookVector());
                 this.GuardPosition = this.position;
-                this.getMoveHelper().Stop();
+                this.moveHelper.Stop();
                 this.GuardLookPosition = player.GetLookVector();
                 break;
             case "Wander":
@@ -478,7 +431,7 @@ public class EntityAliveSDX : EntityNPC
                 DisplayLog(" Loot List: " + this.lootContainer.lootListIndex);
 
                 DisplayLog(this.lootContainer.GetOpenTime().ToString());
-                GameManager.Instance.lootContainerOpened((TileEntityLootContainer)this.lootContainer, uiforPlayer, player.entityId);
+                // GameManager.Instance.lootContainerOpened((TileEntityLootContainer)this.lootContainer, uiforPlayer, player.entityId);
 
                 break;
             case "Loot":
@@ -520,7 +473,6 @@ public class EntityAliveSDX : EntityNPC
         this.Buffs.SetCustomVar("Leader", player.entityId, true);
         this.Buffs.SetCustomVar("CurrentOrder", (float)Orders.Follow, true);
 
-
         //this.factionId = player.factionId;
 
         // Match the player's speed if its set to follow
@@ -528,8 +480,8 @@ public class EntityAliveSDX : EntityNPC
         this.moveSpeedAggro = player.moveSpeedAggro;
 
         this.SetSpawnerSource(EnumSpawnerSource.StaticSpawner);
-
     }
+
     public virtual bool Hire(EntityPlayerLocal _player)
     {
         LocalPlayerUI uiforPlayer = LocalPlayerUI.GetUIForPlayer(_player as EntityPlayerLocal);
@@ -578,8 +530,6 @@ public class EntityAliveSDX : EntityNPC
 
         // disable god mode, since that's enabled by default in the NPC
         this.IsGodMode.Value = false;
-
-        this.bIsChunkObserver = false;
 
         if (this.NPCInfo != null)
             DefaultTraderID = this.NPCInfo.TraderID;
@@ -648,7 +598,7 @@ public class EntityAliveSDX : EntityNPC
         String strGuardPosition = _br.ReadString();
         this.GuardPosition = StringToVector3(strGuardPosition);
         this.factionId = _br.ReadByte();
-        this.GuardLookPosition = StringToVector3(_br.ReadString() );
+        this.GuardLookPosition = StringToVector3(_br.ReadString());
     }
 
     public Vector3 StringToVector3(string sVector)
@@ -776,8 +726,22 @@ public class EntityAliveSDX : EntityNPC
         // then fire the updatestats over time, which is protected from a IsPlayer check in the base onUpdateLive().
         this.Stats.UpdateStatsOverTime(0.5f);
 
+        // Check the state to see if the controller IsBusy or not. If it's not, then let it walk.
+        bool isBusy = false;
+        this.emodel.avatarController.TryGetBool("IsBusy", out isBusy);
+        if (isBusy)
+        {
+            this.moveDirection = Vector3.zero;
+            this.moveHelper.Stop();
+        }
+
+        this.updateTime = Time.time - 2f;
+        base.OnUpdateLive();
+
         // Make the entity sensitive to the environment.
-        this.Stats.UpdateWeatherStats(0.5f, this.world.worldTime, false);
+
+        // this.Stats.UpdateWeatherStats(0.5f, this.world.worldTime, false);
+
 
         // Check if there's a player within 10 meters of us. If not, resume wandering.
         this.emodel.avatarController.SetBool("IsBusy", false);
@@ -794,28 +758,13 @@ public class EntityAliveSDX : EntityNPC
                         this.emodel.avatarController.SetBool("IsBusy", true);
                         this.SetLookPosition(entitiesInBounds[i].getHeadPosition());
                         this.RotateTo(entitiesInBounds[i], 30f, 30f);
-                        return;
+                        this.moveHelper.Stop();
+                        break;
+                        //  return;
                     }
                 }
-
             }
         }
-
-   
-        // Check the state to see if the controller IsBusy or not. If it's not, then let it walk.
-        bool isBusy = false;
-        this.emodel.avatarController.TryGetBool("IsBusy", out isBusy);
-
-        if (IsAlert)
-            isBusy = false;
-
-        if (isBusy == false)
-        {
-            this.updateTime = Time.time - 2f;
-            base.OnUpdateLive();
-        }
-
-        CanExecuteTask(this.currentOrder);
     }
 
     public bool IsInParty(int entityID)
@@ -912,8 +861,8 @@ public class EntityAliveSDX : EntityNPC
     public override int DamageEntity(DamageSource _damageSource, int _strength, bool _criticalHit, float _impulseScale)
     {
         // If the attacking entity is connected to a party, then don't accept the damage.
-        if (IsInParty(_damageSource.getEntityId()))
-            return 0;
+        //if (IsInParty(_damageSource.getEntityId()))
+        //    return 0;
 
         // If we are being attacked, let the state machine know it can fight back
         this.emodel.avatarController.SetBool("IsBusy", false);

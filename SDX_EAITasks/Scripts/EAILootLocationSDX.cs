@@ -179,10 +179,42 @@ class EAILootLocationSDX : EAIApproachSpot
 
 
     }
+
+    private Dictionary<int, PrefabInstance> prefabsAroundFar = new Dictionary<int, PrefabInstance>();
+    private Dictionary<int, PrefabInstance> prefabsAroundNear = new Dictionary<int, PrefabInstance>();
+    public PrefabInstance FindPrefabsNear()
+    {
+        var pos = this.theEntity.position;
+
+        EntityPlayer player = null;
+        if (this.theEntity.Buffs.HasCustomVar("Leader"))
+            player = theEntity.world.GetEntity((int)this.theEntity.Buffs.GetCustomVar("Leader")) as EntityPlayerLocal;
+        else
+            return null;
+        if (theEntity)
+        {
+            DynamicPrefabDecorator dynamicPrefabDecorator = GameManager.Instance.World.ChunkCache.ChunkProvider.GetDynamicPrefabDecorator();
+            if (dynamicPrefabDecorator == null)
+            {
+                return null;
+            }
+            Vector3 position = player.position;
+            int num = (player.ChunkObserver == null) ? GamePrefs.GetInt(EnumGamePrefs.OptionsViewDistance) : player.ChunkObserver.viewDim;
+            num = (num - 1) * 16;
+            if (!player.isEntityRemote)
+            {
+                dynamicPrefabDecorator.GetPrefabsAround(position, (float)num, (float)1000f, this.prefabsAroundFar, this.prefabsAroundNear, true);
+                GameManager.Instance.prefabLODManager.UpdatePrefabsAround(this.prefabsAroundFar, this.prefabsAroundNear);
+            }
+            return this.prefabsAroundNear.Values.FirstOrDefault(d => pos.x >= d.boundingBoxPosition.x && pos.x < d.boundingBoxPosition.x + d.boundingBoxSize.x && pos.z >= d.boundingBoxPosition.z && pos.z < d.boundingBoxPosition.z + d.boundingBoxSize.z);
+        }
+        return null;
+    }
     public bool FindBoundsOfPrefab()
     {
         var pos = this.theEntity.position;
-        prefab = GameManager.Instance.prefabLODManager.prefabsAroundNear.Values.FirstOrDefault(d => pos.x >= d.boundingBoxPosition.x && pos.x < d.boundingBoxPosition.x + d.boundingBoxSize.x && pos.z >= d.boundingBoxPosition.z && pos.z < d.boundingBoxPosition.z + d.boundingBoxSize.z);
+        FindPrefabsNear();
+        prefab = FindPrefabsNear();
         if (prefab == null)
         {
             DisplayLog(" I am not in a prefab. Returning false.");
