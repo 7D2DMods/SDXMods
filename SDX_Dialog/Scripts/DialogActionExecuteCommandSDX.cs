@@ -11,20 +11,15 @@ public class DialogActionExecuteCommandSDX : DialogActionAddBuff
 
     public override void PerformAction(EntityPlayer player)
     {
-        LocalPlayerUI uiforPlayer = LocalPlayerUI.GetUIForPlayer(player as EntityPlayerLocal);
-        // The respondent is an EntityNPC, and we don't have that. Check for the patch scripted otherEntitySDX.
-        Entity respondent = uiforPlayer.xui.Dialog.Respondent;
-        if (respondent == null)
-            respondent = uiforPlayer.xui.Dialog.otherEntitySDX;
+        int entityID = 0;
+        if(player.Buffs.HasCustomVar("CurrentNPC"))
+            entityID = (int)player.Buffs.GetCustomVar("CurrentNPC");
 
-        if (respondent != null)
-        {
-            EntityAliveSDX myEntity = player.world.GetEntity(respondent.entityId) as EntityAliveSDX;
-            if ( myEntity != null )
-            {
+        if(entityID == 0)
+            return;
+        EntityAliveSDX myEntity = player.world.GetEntity(entityID) as EntityAliveSDX;
+        if(myEntity != null)
                 myEntity.ExecuteCMD(base.ID, player);
-            }
-        }
     }
 
     private string name = string.Empty;

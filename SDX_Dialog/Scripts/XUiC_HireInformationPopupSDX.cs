@@ -4,75 +4,67 @@ class XUiC_HireInformationPopupSDX : XUiController
     public XUiV_Panel hireInformationPanel;
     public XUiV_Label hireInformationLabel;
 
-  
+
     public override void Init()
     {
         base.Init();
-        this.hireInformationPanel = (XUiV_Panel)base.GetChildById("HireInformationPopup").ViewComponent;
-        ((XUiC_SimpleButton)this.hireInformationPanel.Controller.GetChildById("btnCancel")).OnPressed += this.BtnCancelHireInformation_OnPressed;
-        ((XUiC_SimpleButton)this.hireInformationPanel.Controller.GetChildById("btnConfirm")).OnPressed += this.BtnConfirmHireInformation_OnPressed;
-        this.hireInformationLabel = (XUiV_Label)this.hireInformationPanel.Controller.GetChildById("HireInformationLabel").ViewComponent;
+        hireInformationPanel = (XUiV_Panel)base.GetChildById("HireInformationPopup").ViewComponent;
+        ((XUiC_SimpleButton)hireInformationPanel.Controller.GetChildById("btnCancel")).OnPressed += BtnCancelHireInformation_OnPressed;
+        ((XUiC_SimpleButton)hireInformationPanel.Controller.GetChildById("btnConfirm")).OnPressed += BtnConfirmHireInformation_OnPressed;
+        hireInformationLabel = (XUiV_Label)hireInformationPanel.Controller.GetChildById("HireInformationLabel").ViewComponent;
     }
 
     public override void OnOpen()
     {
-        LocalPlayerUI uiforPlayer = base.xui.playerUI;
+        EntityPlayer player = base.xui.playerUI.entityPlayer;
 
-        // The respondent is an EntityNPC, and we don't have that. Check for the patch scripted otherEntitySDX.
-        Entity respondent = uiforPlayer.xui.Dialog.Respondent;
-        if (respondent == null)
-               respondent = uiforPlayer.xui.Dialog.otherEntitySDX;
+        int entityID = 0;
+        if(player.Buffs.HasCustomVar("CurrentNPC"))
+            entityID = (int)player.Buffs.GetCustomVar("CurrentNPC");
 
-        if (respondent != null)
-        {
-            EntityAliveSDX myEntity = uiforPlayer.entityPlayer.world.GetEntity(respondent.entityId) as EntityAliveSDX;
-            if (myEntity != null)
-            {
-                this.hireInformationLabel.Text = "Hire " + myEntity.EntityName + " for " + myEntity.GetHireCost() + " " + myEntity.GetHireCurrency().ItemClass.GetLocalizedItemName() + "?";
-            }
-        }
-      
+        if(entityID == 0)
+            return;
+
+        EntityAliveSDX myEntity = player.world.GetEntity(entityID) as EntityAliveSDX;
+        if(myEntity != null)
+            hireInformationLabel.Text = "Hire " + myEntity.EntityName + " for " + myEntity.GetHireCost() + " " + myEntity.GetHireCurrency().ItemClass.GetLocalizedItemName() + "?";
+
         base.OnOpen();
-       
+
     }
 
     private void BtnConfirmHireInformation_OnPressed(XUiController _sender, OnPressEventArgs _onPressEventArgs)
     {
-        LocalPlayerUI uiforPlayer = base.xui.playerUI;
+        EntityPlayer player = base.xui.playerUI.entityPlayer;
 
-        // The respondent is an EntityNPC, and we don't have that. Check for the patch scripted otherEntitySDX.
-        Entity respondent = uiforPlayer.xui.Dialog.Respondent;
-        if (respondent == null)
-            respondent = uiforPlayer.xui.Dialog.otherEntitySDX;
+        int entityID = 0;
+        if(player.Buffs.HasCustomVar("CurrentNPC"))
+            entityID = (int)player.Buffs.GetCustomVar("CurrentNPC");
 
-        if (respondent != null)
-        {
-            EntityAliveSDX myEntity = uiforPlayer.entityPlayer.world.GetEntity(respondent.entityId) as EntityAliveSDX;
-            if (myEntity != null)
-            {
-                myEntity.Hire(uiforPlayer.entityPlayer as EntityPlayerLocal);
-            }
-        }
+        if(entityID == 0)
+            return;
 
-        base.xui.playerUI.windowManager.Close(this.windowGroup.ID);
+        EntityAliveSDX myEntity = player.world.GetEntity(entityID) as EntityAliveSDX;
+        if(myEntity != null)
+            myEntity.Hire(player as EntityPlayerLocal);
+
+        base.xui.playerUI.windowManager.Close(windowGroup.ID);
     }
 
     private void BtnCancelHireInformation_OnPressed(XUiController _sender, OnPressEventArgs _onPressEventArgs)
     {
-        this.hireInformationPanel.IsVisible = false;
-        base.xui.playerUI.windowManager.Close(this.windowGroup.ID);
+        hireInformationPanel.IsVisible = false;
+        base.xui.playerUI.windowManager.Close(windowGroup.ID);
     }
 
     public override void OnClose()
     {
-        if (base.xui.playerUI.windowManager.Contains("dialog") && base.xui.playerUI.windowManager.IsWindowOpen("dialog"))
-        {
+        if(base.xui.playerUI.windowManager.Contains("dialog") && base.xui.playerUI.windowManager.IsWindowOpen("dialog"))
             base.xui.playerUI.windowManager.Close("dialog");
-        }
         base.OnClose();
     }
 
 
-   
+
 }
 

@@ -3,8 +3,7 @@ public class DialogActionOpenDialogSDX : DialogActionAddBuff
 {
     public override void PerformAction(EntityPlayer player)
     {
-        Debug.Log("Perform Action for OpenDialogSDX");
-        LocalPlayerUI uiforPlayer = LocalPlayerUI.GetUIForPlayer(player as EntityPlayerLocal);
+         LocalPlayerUI uiforPlayer = LocalPlayerUI.GetUIForPlayer(player as EntityPlayerLocal);
         uiforPlayer.windowManager.Open("HireInformation", true, false, true);
     }
 

@@ -1,23 +1,26 @@
-﻿public class XUiC_DialogHireInformationSDX : XUiC_DialogRespondentName
+﻿using UnityEngine;
+
+public class XUiC_DialogHireInformationSDX : XUiC_DialogRespondentName
 {
     public override void OnOpen()
     {
-        if (base.xui.Dialog.Respondent != null)
+        EntityPlayer player = base.xui.playerUI.entityPlayer;
+
+        int entityID = 0;
+        if(player.Buffs.HasCustomVar("CurrentNPC"))
+            entityID = (int)player.Buffs.GetCustomVar("CurrentNPC");
+
+        if(entityID == 0)
+            return;
+
+        EntityAliveSDX myEntity = player.world.GetEntity(entityID) as EntityAliveSDX;
+        if(myEntity != null)
         {
-            EntityAliveSDX myEntity = base.xui.Dialog.Respondent as EntityAliveSDX;
-            if (myEntity == null)
-                myEntity = base.xui.Dialog.otherEntitySDX as EntityAliveSDX;
-            if (myEntity)
-            {
-                if (myEntity.isTame(base.xui.playerUI.entityPlayer))
-                {
-                    return;
-                }
-            }
+            if(myEntity.isTame(base.xui.playerUI.entityPlayer))
+                return;
         }
         base.OnOpen();
         base.RefreshBindings(false);
-
     }
   
 }

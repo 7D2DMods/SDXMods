@@ -16,30 +16,24 @@ class XUiC_JoinInformationPopupSDX : XUiController
     }
     public override void OnOpen()
     {
-        LocalPlayerUI uiforPlayer = base.xui.playerUI;
+        EntityPlayer player = base.xui.playerUI.entityPlayer;
 
-        // The respondent is an EntityNPC, and we don't have that. Check for the patch scripted otherEntitySDX.
-        Entity respondent = uiforPlayer.xui.Dialog.Respondent;
-        if (respondent == null)
-            respondent = uiforPlayer.xui.Dialog.otherEntitySDX;
+        int entityID = 0;
+        if(player.Buffs.HasCustomVar("CurrentNPC"))
+            entityID = (int)player.Buffs.GetCustomVar("CurrentNPC");
 
-        if (respondent != null)
+        if(entityID == 0)
+            return;
+
+        EntityAliveSDX myEntity = player.world.GetEntity(entityID) as EntityAliveSDX;
+        if(myEntity != null)
         {
-            EntityAliveSDX myEntity = uiforPlayer.entityPlayer.world.GetEntity(respondent.entityId) as EntityAliveSDX;
-            if (myEntity != null)
-            {
-                Debug.Log(GetType() + " Entity is EntityAliveSDX. Displaying message");
-
-                this.hireInformationLabel.Text = Localization.Get("HireOffer_" + myEntity.EntityName, "");
-                if ( this.hireInformationLabel.Text == "Hire_Offer_" + myEntity.EntityName )
-                {
-                    this.hireInformationLabel.Text = "I would like to join you. Will you accept me?";
-                }
-            }
+            this.hireInformationLabel.Text = Localization.Get("HireOffer_" + myEntity.EntityName, "");
+            if(this.hireInformationLabel.Text == "Hire_Offer_" + myEntity.EntityName)
+                this.hireInformationLabel.Text = "I would like to join you. Will you accept me?";
         }
 
         base.OnOpen();
-       
     }
 
     private void BtnCancelHireInformation_OnPressed(XUiController _sender, OnPressEventArgs _onPressEventArgs)
@@ -49,22 +43,20 @@ class XUiC_JoinInformationPopupSDX : XUiController
     }
     private void BtnConfirmHireInformation_OnPressed(XUiController _sender, OnPressEventArgs _onPressEventArgs)
     {
-        LocalPlayerUI uiforPlayer = base.xui.playerUI;
+        EntityPlayer player = base.xui.playerUI.entityPlayer;
 
-        // The respondent is an EntityNPC, and we don't have that. Check for the patch scripted otherEntitySDX.
-        Entity respondent = uiforPlayer.xui.Dialog.Respondent;
-        if (respondent == null)
-            respondent = uiforPlayer.xui.Dialog.otherEntitySDX;
+        int entityID = 0;
+        if(player.Buffs.HasCustomVar("CurrentNPC"))
+            entityID = (int)player.Buffs.GetCustomVar("CurrentNPC");
 
-        if (respondent != null)
+        if(entityID == 0)
+            return;
+
+        EntityAliveSDX myEntity = player.world.GetEntity(entityID) as EntityAliveSDX;
+        if(myEntity != null)
         {
-            EntityAliveSDX myEntity = uiforPlayer.entityPlayer.world.GetEntity(respondent.entityId) as EntityAliveSDX;
-            if (myEntity != null)
-            {
-                myEntity.SetOwner(uiforPlayer.entityPlayer as EntityPlayerLocal);
-            }
+            myEntity.SetOwner(player as EntityPlayerLocal);
         }
-
         base.xui.playerUI.windowManager.Close(this.windowGroup.ID);
     }
 
