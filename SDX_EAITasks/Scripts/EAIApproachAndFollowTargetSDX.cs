@@ -8,8 +8,6 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
 {
     List<String> lstIncentives = new List<String>();
     private List<Entity> NearbyEntities = new List<Entity>();
-    float distanceToEntity = UnityEngine.Random.Range(2f, 5.0f);
-
     private Vector3 entityTargetPos;
     private Vector3 entityTargetVel;
     private int pathCounter;
@@ -49,8 +47,8 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
 
     public virtual bool ConfigureTargetEntity()
     {
-        if (this.entityTarget != null)
-            return true;
+        //if (this.entityTarget != null)
+        //    return true;
 
         this.NearbyEntities.Clear();
 
@@ -80,11 +78,36 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
                 {
                     DisplayLog(" Found my Target: " + x.EntityName);
                     this.entityTarget = x;
+
+                    Vector3 tempPosition =  (this.theEntity.position - this.entityTarget.position).normalized * 3 + this.entityTarget.position;
+                    Vector3 a = this.theEntity.position - tempPosition;
+                    if (a.sqrMagnitude < 2f)
+                    {
+                        this.entityTarget = null;
+                        this.entityTargetPos = Vector3.zero;
+                        return false;
+                    }
+                    this.entityTargetPos = tempPosition;
+                    DisplayLog(" my Position: " + this.theEntity.position + " Target Position: " + this.entityTargetPos + " My Leader position: " + this.entityTarget.position);
                     return true;
                 }
             }
         }
 
+        // We have a leader, but they are not within our range.
+        if(this.theEntity.Buffs.HasCustomVar("Leader"))
+        {
+            EntityAlive entity = this.theEntity.world.GetEntity((int)(this.theEntity.Buffs.GetCustomVar("Leader"))) as EntityAlive;
+            if(entity)
+            {
+                DisplayLog("My leader is out of sight. Teleporting to my leader");
+                this.entityTarget = entity;
+                SetCloseSpawnPoint();
+                return true;
+
+            }
+        }
+        DisplayLog(" No Entity To be Configured");
         this.entityTarget = null;
         return false;
     }
@@ -108,15 +131,10 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
                 return false;
         }
     
-        // Change the distance allowed each time. This will give it more of a variety in how close it can get to you.
-        distanceToEntity = UnityEngine.Random.Range(2f, 5.0f);
-
         // If there is an entity in bounds, then let this AI Task roceed. Otherwise, don't do anything with it.
         result = ConfigureTargetEntity();
         if (result)
-        {
             DisplayLog("CanExecute() Configure Target Result: " + result);
-        }
 
         DisplayLog("CanExecute() End: " + result);
         return result;
@@ -131,6 +149,17 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
         this.theEntity.IsEating = false;
         this.pathCounter = 0;
     }
+
+    public void SetCloseSpawnPoint()
+    {
+        Vector3 newPos = entityTarget.GetPosition();
+        newPos.y += 1f;
+        newPos.z += 1f;
+
+        this.theEntity.SetPosition( newPos, true);
+    }
+
+  
 
     public override bool Continue()
     {
@@ -156,7 +185,8 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
 
             DisplayLog("Entity is blocked. Resetting its move position");
             // If the npc seems lost, set a generate move to match the leader's position
-            this.theEntity.getMoveHelper().SetMoveTo(this.entityTarget.position, false);
+            this.theEntity.getMoveHelper().SetMoveTo(this.entityTargetPos, false);
+            
             return false;
 
         }
@@ -165,64 +195,59 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
 
         result = ConfigureTargetEntity();
 
+
+        if(this.entityTarget == null)
+        {
+            if(this.theEntity.Buffs.HasCustomVar("Leader"))
+            {
+                DisplayLog(" Checking my Leader");
+                // Find out who the leader is.
+                int PlayerID = (int)this.theEntity.Buffs.GetCustomVar("Leader");
+                float distance = this.theEntity.GetDistance( this.theEntity.world.GetEntity( PlayerID ));
+                DisplayLog(" Distance: " + distance);
+                if(distance > this.theEntity.GetSeeDistance())
+                {
+                    DisplayLog("I am too far away from my leader. Teleporting....");
+                    SetCloseSpawnPoint();
+                    DisplayLog(" my Position: " + this.theEntity.position + " Target Position: " + this.entityTargetPos + " My Leader position: " + this.entityTarget.position);
+                }
+
+            }
+        }
         DisplayLog("Continue() End: " + result);
         return result;
 
     }
 
-    //public float GetTargetXZDistanceSq(int estimatedTicks)
-    //{
-    //    Vector3 vector = this.entityTarget.position;
-    //    vector += this.entityTargetVel * (float)estimatedTicks;
-    //    if (this.isTargetToEat)
-    //    {
-    //        EModelBase emodel = this.entityTarget.emodel;
-    //        if (emodel && emodel.bipedPelvisTransform)
-    //        {
-    //            vector = emodel.bipedPelvisTransform.position + Origin.position;
-    //        }
-    //    }
-    //    Vector3 vector2 = this.theEntity.position + this.theEntity.motion * (float)estimatedTicks - vector;
-    //    vector2.y = 0f;
-    //    return vector2.sqrMagnitude;
-    //}
-
     public override void Update()
     {
-        Vector3 position = Vector3.zero;
-        float targetXZDistanceSq = 0f;
-
         // No entity, so no need to do anything.
-        if (this.entityTarget == null)
+        if(this.entityTarget == null || this.entityTargetPos == null)
+        {
+            DisplayLog(" Entity Target or EntityTarget Position is null");
             return;
+        }
 
         // Let the entity keep looking at you, otherwise it may just sping around.
-        this.theEntity.SetLookPosition(this.entityTarget.getHeadPosition());
-        this.theEntity.RotateTo(this.entityTarget.position.x, this.entityTarget.position.y + 2, this.entityTarget.position.z, 30f, 30f);
-
-        // Find the location of the entity, and figure out where it's at.
-        position = this.entityTarget.position;
-       // targetXZDistanceSq = GetTargetXZDistanceSq(6);
+        this.theEntity.SetLookPosition(this.entityTargetPos);
+        this.theEntity.RotateTo(this.entityTargetPos.x, this.entityTargetPos.y + 2, this.entityTargetPos.z, 30f, 30f);
 
         if (entityAliveSDX)
         {
             if (entityAliveSDX.CanExecuteTask(EntityAliveSDX.Orders.SetPatrolPoint))
             {
                 // Make them a lot closer to you when they are following you.
-                this.distanceToEntity = 1f;
                 entityAliveSDX.UpdatePatrolPoints(this.theEntity.world.FindSupportingBlockPos(this.entityTarget.position));
             }
         }
-        Vector3 a = position - this.entityTargetPos;
-        if (a.sqrMagnitude < 1f)
-            this.entityTargetVel = this.entityTargetVel * 0.7f + a * 0.3f;
-
-        this.entityTargetPos = position;
-        this.theEntity.moveHelper.CalcIfUnreachablePos(position);
-        // num is used to determine how close and comfortable the entity approaches you, so let's make sure they respect some personal space
-        if (distanceToEntity < 3)
-            distanceToEntity = 3;
-
+        Vector3 a = this.theEntity.position - this.entityTargetPos;
+        if (a.sqrMagnitude < 2f)
+        {
+            DisplayLog("Entity is too close. Ending pathing.");
+            this.pathCounter = 0;
+            return;
+        }
+        this.theEntity.moveHelper.CalcIfUnreachablePos(this.entityTargetPos);
 
         // if the entity is not calculating a path, check how many nodes are left, and reset the path counter if its too low.
         if (!PathFinderThread.Instance.IsCalculatingPath(this.theEntity.entityId))
@@ -234,16 +259,20 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
 
         if (--this.pathCounter <= 0 && !PathFinderThread.Instance.IsCalculatingPath(this.theEntity.entityId))
         {
+            DisplayLog(" Path Counter is 0: Finding new path to " + this.entityTargetPos);
             // If its still not calculating a path, find a new path to the leader
             this.pathCounter = 6 + this.theEntity.GetRandom().Next(10);
-            PathFinderThread.Instance.FindPath(this.theEntity, this.entityTarget.position, this.theEntity.GetMoveSpeedAggro(), true, this);
+            PathFinderThread.Instance.FindPath(this.theEntity, this.entityTargetPos, this.theEntity.GetMoveSpeedAggro(), true, this);
         }
 
         if (this.theEntity.Climbing)
             return;
 
         // If there's no path, calculate one.
-        if (this.theEntity.navigator.noPathAndNotPlanningOne())
-            PathFinderThread.Instance.FindPath(this.theEntity, this.entityTarget.position, this.theEntity.GetMoveSpeedAggro(), true, this);
+        if(this.theEntity.navigator.noPathAndNotPlanningOne())
+        {
+            DisplayLog("No Path and Not Planning One. Searching for new path to : " + this.entityTargetPos);
+            PathFinderThread.Instance.FindPath(this.theEntity, this.entityTargetPos, this.theEntity.GetMoveSpeedAggro(), true, this);
+        }
     }
 }

@@ -35,6 +35,7 @@ public class EntityAliveSDX : EntityNPC
     String strSoundAccept = "";
     String strSoundReject = "";
 
+    private float flEyeHeight = -1f;
     private bool bWentThroughDoor = false;
 
     // Update Time for NPC's onUpdateLive(). If the time is greater than update time, it'll do a trader area check, opening and closing. Something we don't want.
@@ -46,7 +47,7 @@ public class EntityAliveSDX : EntityNPC
 
     public System.Random random = new System.Random();
 
-    private bool blDisplayLog = true;
+    private bool blDisplayLog = false;
     public void DisplayLog(String strMessage)
     {
         if (blDisplayLog && !this.IsDead())
@@ -124,11 +125,11 @@ public class EntityAliveSDX : EntityNPC
             }
         }
 
-        if (CheckIncentive(this.lstThirstyBuffs) || CheckIncentive(this.lstHungryBuffs))
-        {
-            DisplayLog("CanExecteTask(): Entity is thirsty or hungry. ");
-            return false;
-        }
+        //if (CheckIncentive(this.lstThirstyBuffs) || CheckIncentive(this.lstHungryBuffs))
+        //{
+        //    DisplayLog("CanExecteTask(): Entity is thirsty or hungry. ");
+        //    return false;
+        //}
 
         // If we have an attack or revenge target, don't execute task
         if (this.GetAttackTarget() != null && this.GetAttackTarget().IsAlive())
@@ -136,8 +137,8 @@ public class EntityAliveSDX : EntityNPC
             DisplayLog("CanExecuteTask():  There is an attack target set. Not executing Order: " + order.ToString());
             DisplayLog(" Attack Target: " + this.GetAttackTarget().ToString());
             return false;
-            
-            }
+
+        }
 
         if (this.GetRevengeTarget() != null && this.GetRevengeTarget().IsAlive())
         {
@@ -166,11 +167,23 @@ public class EntityAliveSDX : EntityNPC
         Loot = 7
     }
 
+
+    public override float GetEyeHeight()
+    {
+        if (flEyeHeight == -1f)
+            return base.GetEyeHeight();
+
+        return this.flEyeHeight;
+    }
+
     // Over-ride for CopyProperties to allow it to read in StartingQuests.
     public override void CopyPropertiesFromEntityClass()
     {
         base.CopyPropertiesFromEntityClass();
         EntityClass entityClass = EntityClass.list[this.entityClass];
+
+        if (entityClass.Properties.Values.ContainsKey("EyeHeight"))
+            flEyeHeight = GetFloatValue("EyeHeight");
 
         // Read in a list of names then pick one at random.
         if (entityClass.Properties.Values.ContainsKey("Names"))
@@ -411,7 +424,7 @@ public class EntityAliveSDX : EntityNPC
 
                 break;
             case "StayHere":
-                this.Buffs.SetCustomVar("CurrentOrder", (float)EntityAliveSDX.Orders.Stay, false);
+                this.Buffs.SetCustomVar("CurrentOrder", (float)EntityAliveSDX.Orders.None, false);
                 this.GuardPosition = this.position;
                 this.moveHelper.Stop();
                 break;
@@ -450,7 +463,7 @@ public class EntityAliveSDX : EntityNPC
                 DisplayLog(" Loot List: " + this.lootContainer.lootListIndex);
 
                 DisplayLog(this.lootContainer.GetOpenTime().ToString());
-                 lootContainerOpened((TileEntityLootContainer)this.lootContainer, uiforPlayer, player.entityId);
+                lootContainerOpened((TileEntityLootContainer)this.lootContainer, uiforPlayer, player.entityId);
 
                 break;
             case "Loot":
@@ -586,6 +599,12 @@ public class EntityAliveSDX : EntityNPC
             }
         }
     }
+
+    public override bool CanBePushed()
+    {
+        return true;
+    }
+
     public override void PostInit()
     {
         base.PostInit();
@@ -775,8 +794,10 @@ public class EntityAliveSDX : EntityNPC
         this.QuestJournal.AddQuest(NewQuest);
     }
 
+
     public override void OnUpdateLive()
     {
+
         if (this.lastDoorOpen != Vector3i.zero)
             OpenDoor();
 
@@ -790,7 +811,7 @@ public class EntityAliveSDX : EntityNPC
         // Check the state to see if the controller IsBusy or not. If it's not, then let it walk.
         bool isBusy = false;
         this.emodel.avatarController.TryGetBool("IsBusy", out isBusy);
-        if (isBusy)
+        if (isBusy || this.currentOrder == Orders.None)
         {
             this.moveDirection = Vector3.zero;
             this.moveHelper.Stop();
@@ -800,7 +821,6 @@ public class EntityAliveSDX : EntityNPC
         base.OnUpdateLive();
 
         // Make the entity sensitive to the environment.
-
         // this.Stats.UpdateWeatherStats(0.5f, this.world.worldTime, false);
 
 
@@ -821,7 +841,6 @@ public class EntityAliveSDX : EntityNPC
                         this.RotateTo(entitiesInBounds[i], 30f, 30f);
                         this.moveHelper.Stop();
                         break;
-                        //  return;
                     }
                 }
             }
@@ -922,8 +941,8 @@ public class EntityAliveSDX : EntityNPC
     public override int DamageEntity(DamageSource _damageSource, int _strength, bool _criticalHit, float _impulseScale)
     {
         // If the attacking entity is connected to a party, then don't accept the damage.
-     //   if (IsInParty(_damageSource.getEntityId()))
-    //        return 0;
+        //   if (IsInParty(_damageSource.getEntityId()))
+        //        return 0;
 
         // If we are being attacked, let the state machine know it can fight back
         this.emodel.avatarController.SetBool("IsBusy", false);
