@@ -12,7 +12,7 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
     private Vector3 entityTargetVel;
     private int pathCounter;
 
-    public EntityAliveSDX entityAliveSDX;
+  //  public EntityAliveSDX entityAliveSDX;
 
     private bool blDisplayLog = false;
     private EntityAlive entityTarget;
@@ -27,7 +27,7 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
     public override void Init(EntityAlive _theEntity)
     {
         base.Init(_theEntity);
-        entityAliveSDX = (_theEntity as EntityAliveSDX);
+       // entityAliveSDX = (_theEntity as EntityAliveSDX);
     }
 
     // Allow params to be a comma-delimited list of various incentives, such as item name, buff, or cvar.
@@ -52,17 +52,17 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
 
         this.NearbyEntities.Clear();
 
-        if (this.entityAliveSDX == null)
-        {
-            if (this.theEntity is EntityAliveSDX)
-                this.entityAliveSDX = (this.theEntity as EntityAliveSDX);
-            else
-            {
-                DisplayLog(" Not an EntityAliveSDX");
-                return false;
-            }
-        }
-
+        //if (this.entityAliveSDX == null)
+        //{
+        //    if (this.theEntity is EntityAliveSDX)
+        //        this.entityAliveSDX = (this.theEntity as EntityAliveSDX);
+        //    else
+        //    {
+        //        DisplayLog(" Not an EntityAliveSDX");
+        //        return false;
+        //    }
+        //}
+  
         DisplayLog(" ConfigureTargetEntity()");
         // Search in the bounds are to try to find the most appealing entity to follow.
         Bounds bb = new Bounds(this.theEntity.position, new Vector3(30f, 20f, 30f));
@@ -74,13 +74,15 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
             {
 
                 // Check the entity against the incentives
-                if (entityAliveSDX.CheckIncentive(this.lstIncentives, x))
+                if (EntityUtilities.CheckIncentive(this.theEntity.entityId, this.lstIncentives, x))
                 {
                     DisplayLog(" Found my Target: " + x.EntityName);
                     this.entityTarget = x;
 
                     Vector3 tempPosition =  (this.theEntity.position - this.entityTarget.position).normalized * 3 + this.entityTarget.position;
+                    
                     Vector3 a = this.theEntity.position - tempPosition;
+                    DisplayLog(" Distance: " + a);
                     if (a.sqrMagnitude < 2f)
                     {
                         this.entityTarget = null;
@@ -94,6 +96,7 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
             }
         }
 
+        
         // We have a leader, but they are not within our range.
         if(this.theEntity.Buffs.HasCustomVar("Leader"))
         {
@@ -116,14 +119,14 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
     {
         DisplayLog("CanExecute() Start");
         bool result = false;
-        if (entityAliveSDX)
+    //    if (entityAliveSDX)
         {
-            result = entityAliveSDX.CanExecuteTask(EntityAliveSDX.Orders.Follow);
+            result = EntityUtilities.CanExecuteTask(this.theEntity.entityId, EntityUtilities.Orders.Follow);
             DisplayLog("CanExecute() Follow Task? " + result);
             // Since SetPatrol also uses this method, we'll add an extra check.
             if (result == false)
             {
-                result = entityAliveSDX.CanExecuteTask(EntityAliveSDX.Orders.SetPatrolPoint);
+                result = EntityUtilities.CanExecuteTask(this.theEntity.entityId, EntityUtilities.Orders.SetPatrolPoint);
                 DisplayLog(" CanExecute() Set Patrol Point? " + result);
             }
 
@@ -153,10 +156,12 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
     public void SetCloseSpawnPoint()
     {
         Vector3 newPos = entityTarget.GetPosition();
-        newPos.y += 1f;
-        newPos.z += 1f;
-
-        this.theEntity.SetPosition( newPos, true);
+        newPos.x += 2f;
+        newPos.z += 2f;
+        int x, y, z;
+        this.theEntity.world.FindRandomSpawnPointNearPositionUnderground(entityTarget.position, 15, out x, out y, out z, new Vector3(2,2,2));
+        //  this.theEntity.SetPosition( newPos, true);
+        this.theEntity.SetPosition(new Vector3(x, y, z), true);
     }
 
   
@@ -166,13 +171,13 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
         DisplayLog("Continue() Start");
 
         bool result = false;
-        if (entityAliveSDX)
+     //   if (entityAliveSDX)
         {
-            result = entityAliveSDX.CanExecuteTask(EntityAliveSDX.Orders.Follow);
+            result = EntityUtilities.CanExecuteTask(this.theEntity.entityId, EntityUtilities.Orders.Follow);
             if (result == false)
             {
                 // Since SetPatrol also uses this method, we'll add an extra check.
-                result = entityAliveSDX.CanExecuteTask(EntityAliveSDX.Orders.SetPatrolPoint);
+                result = EntityUtilities.CanExecuteTask(this.theEntity.entityId, EntityUtilities.Orders.SetPatrolPoint);
             }
 
             if (result == false)
@@ -232,12 +237,12 @@ public class EAIApproachAndFollowTargetSDX : EAIApproachAndAttackTarget
         this.theEntity.SetLookPosition(this.entityTargetPos);
         this.theEntity.RotateTo(this.entityTargetPos.x, this.entityTargetPos.y + 2, this.entityTargetPos.z, 30f, 30f);
 
-        if (entityAliveSDX)
+     //   if (entityAliveSDX)
         {
-            if (entityAliveSDX.CanExecuteTask(EntityAliveSDX.Orders.SetPatrolPoint))
+            if (EntityUtilities.CanExecuteTask(this.theEntity.entityId, EntityUtilities.Orders.SetPatrolPoint))
             {
                 // Make them a lot closer to you when they are following you.
-                entityAliveSDX.UpdatePatrolPoints(this.theEntity.world.FindSupportingBlockPos(this.entityTarget.position));
+                (this.theEntity as EntityAliveSDX).UpdatePatrolPoints(this.theEntity.world.FindSupportingBlockPos(this.entityTarget.position));
             }
         }
         Vector3 a = this.theEntity.position - this.entityTargetPos;

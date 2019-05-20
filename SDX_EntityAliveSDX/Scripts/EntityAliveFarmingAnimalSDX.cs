@@ -15,7 +15,7 @@ using UnityEngine;
 using System;
 using System.IO;
 
-class EntityAliveFarmingAnimalSDX : EntityAliveSDX
+public class EntityAliveFarmingAnimalSDX : EntityAliveSDX
 {
 
     protected override void Awake()
@@ -71,16 +71,6 @@ class EntityAliveFarmingAnimalSDX : EntityAliveSDX
         this.npcID = "animalFarm";
         
         base.CopyPropertiesFromEntityClass();
-        EntityClass entityClass = EntityClass.list[this.entityClass];
-     
-        //if (entityClass.Properties.Values.ContainsKey("BoundaryBox"))
-        //{
-        //    Vector3 dim = StringParsers.ParseVector3(entityClass.Properties.Values["BoundaryBox"], 0, -1);
-        //    ConfigureBounaryBox(dim);
-        //}
-            InvokeRepeating("CheckAnimalEvent", 1f, 60f);
-  
-
     }
 
     // Cows were being stuck on the fence and trying to attack them. This is, I think, due to the entity move helper which makes
@@ -120,7 +110,8 @@ class EntityAliveFarmingAnimalSDX : EntityAliveSDX
             EntityAliveFarmingAnimalSDX temp = this.world.GetEntity((int)this.Buffs.GetCustomVar("Herd")) as EntityAliveFarmingAnimalSDX;
             if (temp)
             {
-                this.Buffs.SetCustomVar("CurrentOrder", (float)Orders.None, true);
+                
+                this.Buffs.SetCustomVar("CurrentOrder", (float)EntityUtilities.Orders.None, true);
                 this.setHomeArea(temp.GetBlockPosition(), 10);
             }
         }

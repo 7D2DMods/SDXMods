@@ -10,11 +10,11 @@ objectives have been met.
 ObjectiveBuffSDX
 ---------------------
 
-This new Objective type allows you to set a condition on a buff before continuing. In the below example, in order to transition from Phase 1 to Phase 2, the entity must have the buff called "buffAnimalAdult".
+This new Objective type allows you to set a condition on a buff before continueing. In the below example, in order to transition from Phase 1 to Phase 2, the entity must have the buff called "buffAnimalAdult".
 
 ###Properties:###
 
-	phase: Like in Vanilla. 
+	phase: Vanilla. 
 	buff: This is the buff that the entity must have before this phase will progress.
 
 Example Usage:
@@ -103,7 +103,7 @@ Example Usage:
 QuestActionSpawnEntitySDX
 ---------------------
 
-This QuestAction allows you to spawn an entity, spawning it beside the SharedOwnerID's entity. Unlike SpawnEnemy, it won't automatically set the player or spawn entity trigger as an enemy. Like SpawnEnemy, 
+This QuestAction allows you to spawn an entity, spawning it beside the SharedOwnerID's entity. Unlike SpawnEnemy, it won't automatically set the player or spawn entity trigger as ane enemy. Like SpawnEnemy, 
 it can accept comma delimited entities in the id="animalFarmCow,zombieArlene".
 		
 Example Usage:
@@ -174,7 +174,7 @@ Here's an example of a Quest line that works based on buff progression.
 </quest>
 ~~~~~~~~~~~
 
-As mentioned before, in order for the Objectives to properly fire, you need to use the MinEventActionPumpQuestSDX in the buffs. In the effect_group "Starting Effects", there's a PumpQuestSDX, Mods. This fires the refresh
+As mentioned before, in order for the Objectives to properly fire, you need to use the MinEventActionPumpQuestSDX in the buffs. In the  effect_group  "Starting Effects", there's a PumpQuestSDX, Mods. This fires the refresh
 call for each of the quests that belong to the entity to refresh and check their status.
 
 ~~~~~~~~~~~{.xml}

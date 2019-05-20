@@ -40,20 +40,14 @@ class EAISetAsTargetNearestEnemySDX : EAISetAsTargetIfHurt
         this.NearbyEntities.Clear();
         NearbyEnemies.Clear();
 
-        EntityAlive leader = null;
-        if (this.theEntity.Buffs.HasCustomVar("Leader"))
-        {
-            DisplayLog(" leader Detected.");
-            int EntityID = (int)this.theEntity.Buffs.GetCustomVar("Leader");
-            leader = this.theEntity.world.GetEntity(EntityID) as EntityAlive;
-
-        }
+        EntityAlive leader = EntityUtilities.GetLeaderOrOwner(this.theEntity.entityId) as EntityAlive;
+  
 
         float originalView = this.theEntity.GetMaxViewAngle();
         this.theEntity.SetMaxViewAngle(250f);
 
         // Search in the bounds are to try to find the most appealing entity to follow.
-        Bounds bb = new Bounds(this.theEntity.position, new Vector3(this.theEntity.GetSeeDistance(), 20f, this.theEntity.GetSeeDistance()));
+        Bounds bb = new Bounds(this.theEntity.position, new Vector3(20f, 20f, 20f));
         this.theEntity.world.GetEntitiesInBounds(typeof(EntityAlive), bb, this.NearbyEntities);
         DisplayLog(" Nearby Entities: " + this.NearbyEntities.Count);
         for (int i = this.NearbyEntities.Count - 1; i >= 0; i--)
@@ -61,7 +55,7 @@ class EAISetAsTargetNearestEnemySDX : EAISetAsTargetIfHurt
             EntityAlive x = (EntityAlive)this.NearbyEntities[i];
             if (x != this.theEntity && x.IsAlive())
             {
-                if (x == leader)
+                if (leader != null && x == leader)
                     continue;
 
                 if (x.CanSee(this.theEntity.position))
