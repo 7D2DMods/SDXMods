@@ -44,6 +44,38 @@ public static class EntityUtilities
 
 
     }
+
+    public static bool HasTask(int EntityID, String strTask)
+    {
+        EntityAliveSDX myEntity = GameManager.Instance.World.GetEntity(EntityID) as EntityAliveSDX;
+        if(myEntity != null)
+        {
+            string text2;
+
+            EntityClass entityClass = EntityClass.list[myEntity.entityClass];
+            for(int x = 1; x < 20; x++)
+            {
+                string text = EntityClass.PropAITask + x;
+
+                if(entityClass.Properties.Values.ContainsKey(text))
+                {
+                    if(entityClass.Properties.Values.TryGetString(text, out text2) || text2.Length > 0)
+                    {
+                        if(text2.Contains(strTask))
+                            return true;
+
+                        continue;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        }
+
+        return false;
+    }
     public static bool Hire(int EntityID, EntityPlayerLocal _player)
     {
         DisplayLog("Hire()");
@@ -222,8 +254,6 @@ public static class EntityUtilities
             case "TellMe":
                 //XUiC_TipWindow.ShowTip(myEntity.ToString(), XUiM_Player.GetPlayer() as EntityPlayerLocal,null);
                 GameManager.ShowTooltipWithAlert(player as EntityPlayerLocal, myEntity.ToString() + "\n\n\n\n\n", "ui_denied");
-                EntityPlayerLocal localPlayer = player as EntityPlayerLocal;
-                localPlayer.SwitchModelView(EnumEntityModelView.FirstPerson);
               break;
             case "ShowAffection":
                 GameManager.ShowTooltipWithAlert(player as EntityPlayerLocal, "You gentle scratch and stroke the side of the animal.", "");

@@ -509,12 +509,17 @@ public class EntityAliveSDX : EntityNPC
 
     public override void SetRevengeTarget(EntityAlive _other)
     {
-        // Forgive friendly fire, even from explosions.
-        EntityAlive myLeeader = EntityUtilities.GetLeaderOrOwner(entityId) as EntityAlive;
-        if(myLeeader.entityId == _other.entityId)
-            return;
+        if (_other )
+        {
+            // Forgive friendly fire, even from explosions.
+            EntityAlive myLeader = EntityUtilities.GetLeaderOrOwner(entityId) as EntityAlive;
+            if ( myLeader )
+                if (myLeader.entityId == _other.entityId)
+                return;
 
 
+            
+        }
         base.SetRevengeTarget(_other);
     }
 
